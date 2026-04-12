@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>共同記帳 v4 - 當月修正版</title>
+    <title>共同記帳 - 月份切換版</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -14,7 +14,12 @@
         .user-selector { display: flex; gap: 10px; margin-bottom: 15px; justify-content: center; }
         .user-btn { flex: 1; padding: 10px; border: 2px solid #eee; border-radius: 20px; background: none; cursor: pointer; font-size: 0.9rem; }
         .user-btn.active { border-color: var(--primary); background: #eef7ff; font-weight: bold; color: var(--primary); }
-        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; margin-bottom: 10px; font-size: 1rem; }
+        
+        /* 月份選擇器樣式 */
+        .filter-section { background: #fdfdfd; padding: 15px; border-radius: 15px; border: 1px dashed #36A2EB; margin: 15px 0; text-align: center; }
+        .month-select { padding: 8px 15px; border-radius: 10px; border: 1px solid #36A2EB; font-size: 1rem; color: #36A2EB; font-weight: bold; cursor: pointer; }
+
+        input[type="date"], input[type="number"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; margin-bottom: 10px; font-size: 1rem; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 8px; margin-bottom: 20px; }
         .btn-cat { border: none; padding: 12px 2px; border-radius: 10px; background: #f0f0f0; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 0.8rem; }
         .btn-cat:active { background: #ddd; transform: scale(0.95); }
@@ -28,7 +33,6 @@
 
 <div class="app-card">
     <h2 style="text-align:center; margin-bottom:5px;">💑 共同記帳</h2>
-    <p id="connStatus" style="text-align:center; font-size:0.7rem; color:gray; margin-bottom:15px;">連線中...</p>
     
     <div class="user-selector">
         <button class="user-btn active" id="btn1" onclick="setUser('我')">我</button>
@@ -51,10 +55,15 @@
         <button class="btn-cat" onclick="save('貸款', '🏦')"><span class="emoji">🏦</span>貸款</button>
     </div>
 
-    <div style="height: 220px;"><canvas id="myChart"></canvas></div>
-    <h3 id="totalDisplay" style="text-align:center; color:#333; margin: 20px 0;">本月總計：$0</h3>
+    <div class="filter-section">
+        <label style="font-size: 0.9rem; color: #666;">📅 查看月份支出：</label>
+        <input type="month" id="monthPicker" class="month-select" onchange="renderData()">
+    </div>
 
-    <div style="font-weight:bold; margin-bottom:10px;">📋 最近明細</div>
+    <div style="height: 220px;"><canvas id="myChart"></canvas></div>
+    <h3 id="totalDisplay" style="text-align:center; color:#333; margin: 20px 0;">該月總計：$0</h3>
+
+    <div style="font-weight:bold; margin-bottom:10px;">📋 該月明細</div>
     <div id="historyList"></div>
 </div>
 
@@ -74,7 +83,12 @@
     const db = firebase.database().ref('our_budget_v4');
 
     let currentUser = "我";
-    document.getElementById('dateInput').valueAsDate = new Date();
+    let cachedData = null; // 用於儲存從雲端抓取的資料
+
+    // 初始化日期：今天與本月
+    const now = new Date();
+    document.getElementById('dateInput').valueAsDate = now;
+    document.getElementById('monthPicker').value = now.toISOString().slice(0, 7);
 
     function setUser(u) {
         currentUser = u;
@@ -104,40 +118,14 @@
         }
     }
 
-    db.on('value', (snap) => {
-        const data = snap.val();
+    // 核心渲染邏輯
+    function renderData() {
+        if (!cachedData) return;
+        
+        const selectedMonth = document.getElementById('monthPicker').value; // 取得格式如 "2024-04"
         const list = document.getElementById('historyList');
         list.innerHTML = '';
         let totals = { '食':0, '衣':0, '住':0, '行':0, '育':0, '樂':0, '繳費':0, '網購':0, '超市':0, '貸款':0 };
         let grandTotal = 0;
-        
-        // 取得當前月份 (例如 "2024-04")
-        const currentMonth = new Date().toISOString().slice(0, 7);
 
-        if (data) {
-            document.getElementById('connStatus').innerText = "● 雲端已同步";
-            const keys = Object.keys(data).sort((a,b) => data[b].ts - data[a].ts);
-            keys.forEach(k => {
-                const item = data[k];
-                
-                // 只有當日期開頭符合本月，才計入統計
-                if (item.date && item.date.startsWith(currentMonth)) {
-                    if(totals.hasOwnProperty(item.category)) totals[item.category] += item.amount;
-                    grandTotal += item.amount;
-                }
-
-                // 清單依然顯示所有，方便查詢歷史
-                list.innerHTML += `<div class="history-item">
-                    <span>${item.date.slice(5)} ${item.emoji} $${item.amount} <span class="user-tag">${item.user}</span></span>
-                    <button class="del-btn" onclick="if(confirm('要刪除嗎？')) firebase.database().ref('our_budget_v4').child('${k}').remove()">×</button>
-                </div>`;
-            });
-        }
-        chart.data.datasets[0].data = Object.values(totals);
-        chart.update();
-        document.getElementById('totalDisplay').innerText = `本月總計：$${grandTotal.toLocaleString()}`;
-    });
-</script>
-
-</body>
-</html>
+        const keys = Object.keys(cachedData).sort((a,b) => cachedData[b].ts - cachedData[a].ts);
