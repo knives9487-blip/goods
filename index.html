@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我們的共同記帳本 v4</title>
+    <title>共同記帳 v4 - 當月修正版</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -15,13 +15,10 @@
         .user-btn { flex: 1; padding: 10px; border: 2px solid #eee; border-radius: 20px; background: none; cursor: pointer; font-size: 0.9rem; }
         .user-btn.active { border-color: var(--primary); background: #eef7ff; font-weight: bold; color: var(--primary); }
         input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; margin-bottom: 10px; font-size: 1rem; }
-        
-        /* 調整為 2x5 或彈性網格 */
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 8px; margin-bottom: 20px; }
         .btn-cat { border: none; padding: 12px 2px; border-radius: 10px; background: #f0f0f0; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 0.8rem; }
         .btn-cat:active { background: #ddd; transform: scale(0.95); }
         .emoji { font-size: 1.3rem; margin-bottom: 4px; }
-
         .history-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f9f9f9; align-items: center; }
         .user-tag { font-size: 0.7rem; background: #eee; padding: 2px 6px; border-radius: 4px; margin-left: 5px; color: #666; }
         .del-btn { color: #ff4d4d; border: none; background: none; cursor: pointer; font-size: 1.2rem; padding: 0 10px; }
@@ -55,14 +52,13 @@
     </div>
 
     <div style="height: 220px;"><canvas id="myChart"></canvas></div>
-    <h3 id="totalDisplay" style="text-align:center; color:#333; margin: 20px 0;">總計：$0</h3>
+    <h3 id="totalDisplay" style="text-align:center; color:#333; margin: 20px 0;">本月總計：$0</h3>
 
     <div style="font-weight:bold; margin-bottom:10px;">📋 最近明細</div>
     <div id="historyList"></div>
 </div>
 
 <script>
-    // 請確認此處 Config 是否與你的 Firebase 一致
     const firebaseConfig = {
         apiKey: "AIzaSyAKP1RNsdH6PzkpG5s_cJKvYiqWw4ogTxM",
         authDomain: "news-7faa3.firebaseapp.com",
@@ -114,23 +110,32 @@
         list.innerHTML = '';
         let totals = { '食':0, '衣':0, '住':0, '行':0, '育':0, '樂':0, '繳費':0, '網購':0, '超市':0, '貸款':0 };
         let grandTotal = 0;
+        
+        // 取得當前月份 (例如 "2024-04")
+        const currentMonth = new Date().toISOString().slice(0, 7);
 
         if (data) {
             document.getElementById('connStatus').innerText = "● 雲端已同步";
             const keys = Object.keys(data).sort((a,b) => data[b].ts - data[a].ts);
             keys.forEach(k => {
                 const item = data[k];
-                if(totals.hasOwnProperty(item.category)) totals[item.category] += item.amount;
-                grandTotal += item.amount;
+                
+                // 只有當日期開頭符合本月，才計入統計
+                if (item.date && item.date.startsWith(currentMonth)) {
+                    if(totals.hasOwnProperty(item.category)) totals[item.category] += item.amount;
+                    grandTotal += item.amount;
+                }
+
+                // 清單依然顯示所有，方便查詢歷史
                 list.innerHTML += `<div class="history-item">
-                    <span>${item.date.split('-').slice(1).join('/')} ${item.emoji} $${item.amount} <span class="user-tag">${item.user}</span></span>
+                    <span>${item.date.slice(5)} ${item.emoji} $${item.amount} <span class="user-tag">${item.user}</span></span>
                     <button class="del-btn" onclick="if(confirm('要刪除嗎？')) firebase.database().ref('our_budget_v4').child('${k}').remove()">×</button>
                 </div>`;
             });
         }
         chart.data.datasets[0].data = Object.values(totals);
         chart.update();
-        document.getElementById('totalDisplay').innerText = `總計：$${grandTotal.toLocaleString()}`;
+        document.getElementById('totalDisplay').innerText = `本月總計：$${grandTotal.toLocaleString()}`;
     });
 </script>
 
