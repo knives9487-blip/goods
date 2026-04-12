@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>共同記帳 - 除錯修復版</title>
+    <title>我們的共同記帳本 v4</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -11,21 +11,27 @@
         :root { --primary: #36A2EB; --bg: #f4f7f6; }
         body { font-family: sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 15px; margin: 0; }
         .app-card { width: 100%; max-width: 500px; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        #connStatus { text-align: center; font-size: 0.8rem; padding: 8px; border-radius: 8px; margin-bottom: 15px; background: #eee; }
-        .user-selector { display: flex; gap: 10px; margin-bottom: 15px; }
-        .user-btn { flex: 1; padding: 10px; border: 2px solid #eee; border-radius: 20px; background: none; cursor: pointer; }
-        .user-btn.active { border-color: var(--primary); background: #eef7ff; font-weight: bold; }
-        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; margin-bottom: 10px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(75px, 1fr)); gap: 8px; margin-bottom: 20px; }
+        .user-selector { display: flex; gap: 10px; margin-bottom: 15px; justify-content: center; }
+        .user-btn { flex: 1; padding: 10px; border: 2px solid #eee; border-radius: 20px; background: none; cursor: pointer; font-size: 0.9rem; }
+        .user-btn.active { border-color: var(--primary); background: #eef7ff; font-weight: bold; color: var(--primary); }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; margin-bottom: 10px; font-size: 1rem; }
+        
+        /* 調整為 2x5 或彈性網格 */
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 8px; margin-bottom: 20px; }
         .btn-cat { border: none; padding: 12px 2px; border-radius: 10px; background: #f0f0f0; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 0.8rem; }
-        .history-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
+        .btn-cat:active { background: #ddd; transform: scale(0.95); }
+        .emoji { font-size: 1.3rem; margin-bottom: 4px; }
+
+        .history-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f9f9f9; align-items: center; }
+        .user-tag { font-size: 0.7rem; background: #eee; padding: 2px 6px; border-radius: 4px; margin-left: 5px; color: #666; }
+        .del-btn { color: #ff4d4d; border: none; background: none; cursor: pointer; font-size: 1.2rem; padding: 0 10px; }
     </style>
 </head>
 <body>
 
 <div class="app-card">
-    <div id="connStatus">⏳ 正在初始化 Firebase...</div>
-    <h2 style="text-align:center;">💑 共同記帳</h2>
+    <h2 style="text-align:center; margin-bottom:5px;">💑 共同記帳</h2>
+    <p id="connStatus" style="text-align:center; font-size:0.7rem; color:gray; margin-bottom:15px;">連線中...</p>
     
     <div class="user-selector">
         <button class="user-btn active" id="btn1" onclick="setUser('我')">我</button>
@@ -36,25 +42,27 @@
     <input type="number" id="amountInput" placeholder="輸入金額..." inputmode="decimal">
     
     <div class="grid">
-        <button class="btn-cat" onclick="save('食', '🍱')">🍱 食</button>
-        <button class="btn-cat" onclick="save('衣', '👕')">👕 衣</button>
-        <button class="btn-cat" onclick="save('住', '🏠')">🏠 住</button>
-        <button class="btn-cat" onclick="save('行', '🚌')">🚌 行</button>
-        <button class="btn-cat" onclick="save('育', '📖')">📖 育</button>
-        <button class="btn-cat" onclick="save('樂', '🎮')">🎮 樂</button>
-        <button class="btn-cat" onclick="save('繳費', '🧧')">🧧 繳費</button>
-        <button class="btn-cat" onclick="save('網購', '🛒')">🛒 網購</button>
-        <button class="btn-cat" onclick="save('超市', '🏢')">🏢 超市</button>
-        <button class="btn-cat" onclick="save('貸款', '🏦')">🏦 貸款</button>
+        <button class="btn-cat" onclick="save('食', '🍱')"><span class="emoji">🍱</span>食</button>
+        <button class="btn-cat" onclick="save('衣', '👕')"><span class="emoji">👕</span>衣</button>
+        <button class="btn-cat" onclick="save('住', '🏠')"><span class="emoji">🏠</span>住</button>
+        <button class="btn-cat" onclick="save('行', '🚌')"><span class="emoji">🚌</span>行</button>
+        <button class="btn-cat" onclick="save('育', '📖')"><span class="emoji">📖</span>育</button>
+        <button class="btn-cat" onclick="save('樂', '🎮')"><span class="emoji">🎮</span>樂</button>
+        <button class="btn-cat" onclick="save('繳費', '🧧')"><span class="emoji">🧧</span>繳費</button>
+        <button class="btn-cat" onclick="save('網購', '🛒')"><span class="emoji">🛒</span>網購</button>
+        <button class="btn-cat" onclick="save('超市', '🏢')"><span class="emoji">🏢</span>超市</button>
+        <button class="btn-cat" onclick="save('貸款', '🏦')"><span class="emoji">🏦</span>貸款</button>
     </div>
 
-    <canvas id="myChart" style="max-height: 200px;"></canvas>
-    <h3 id="totalDisplay" style="text-align:center; margin: 15px 0;">本月總計：$0</h3>
+    <div style="height: 220px;"><canvas id="myChart"></canvas></div>
+    <h3 id="totalDisplay" style="text-align:center; color:#333; margin: 20px 0;">總計：$0</h3>
+
+    <div style="font-weight:bold; margin-bottom:10px;">📋 最近明細</div>
     <div id="historyList"></div>
 </div>
 
 <script>
-    // 1. 請務必確認此 Config 正確
+    // 請確認此處 Config 是否與你的 Firebase 一致
     const firebaseConfig = {
         apiKey: "AIzaSyAKP1RNsdH6PzkpG5s_cJKvYiqWw4ogTxM",
         authDomain: "news-7faa3.firebaseapp.com",
@@ -66,13 +74,8 @@
         databaseURL: "https://news-7faa3-default-rtdb.firebaseio.com/" 
     };
 
-    try {
-        firebase.initializeApp(firebaseConfig);
-        var db = firebase.database().ref('our_budget_v5');
-        document.getElementById('connStatus').innerText = "📡 已連線至 Firebase";
-    } catch (e) {
-        document.getElementById('connStatus').innerText = "❌ 初始化失敗: " + e.message;
-    }
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database().ref('our_budget_v4');
 
     let currentUser = "我";
     document.getElementById('dateInput').valueAsDate = new Date();
@@ -88,44 +91,48 @@
         type: 'doughnut',
         data: {
             labels: ['食', '衣', '住', '行', '育', '樂', '繳費', '網購', '超市', '貸款'],
-            datasets: [{ data: [0,0,0,0,0,0,0,0,0,0], backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E74C3C', '#2ECC71', '#F39C12', '#34495E'] }]
-        }
+            datasets: [{ 
+                data: [0,0,0,0,0,0,0,0,0,0], 
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E74C3C', '#2ECC71', '#F39C12', '#34495E'] 
+            }]
+        },
+        options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
     });
 
     function save(cat, emoji) {
         const amt = parseFloat(document.getElementById('amountInput').value);
         const date = document.getElementById('dateInput').value;
         if (amt > 0) {
-            db.push({ date, category: cat, amount: amt, user: currentUser, ts: Date.now(), emoji: emoji })
-              .then(() => document.getElementById('amountInput').value = '')
-              .catch(err => alert("儲存失敗: " + err.message));
+            db.push({ date, category: cat, amount: amt, user: currentUser, ts: Date.now(), emoji: emoji });
+            document.getElementById('amountInput').value = '';
         }
     }
 
-    // 關鍵除錯監聽
     db.on('value', (snap) => {
         const data = snap.val();
-        console.log("雲端原始數據:", data);
-        
         const list = document.getElementById('historyList');
         list.innerHTML = '';
         let totals = { '食':0, '衣':0, '住':0, '行':0, '育':0, '樂':0, '繳費':0, '網購':0, '超市':0, '貸款':0 };
         let grandTotal = 0;
-        const currentMonth = new Date().toISOString().slice(0, 7);
 
-        if (!snap.exists()) {
-            document.getElementById('connStatus').innerText = "⚠️ 雲端目前無資料，請輸入第一筆！";
-            document.getElementById('connStatus').style.background = "#fff3cd";
-        } else {
-            document.getElementById('connStatus').innerText = "✅ 數據同步成功";
-            document.getElementById('connStatus').style.background = "#d4edda";
-            
+        if (data) {
+            document.getElementById('connStatus').innerText = "● 雲端已同步";
             const keys = Object.keys(data).sort((a,b) => data[b].ts - data[a].ts);
             keys.forEach(k => {
                 const item = data[k];
-                if (item.date.startsWith(currentMonth)) {
-                    totals[item.category] += item.amount;
-                    grandTotal += item.amount;
-                }
+                if(totals.hasOwnProperty(item.category)) totals[item.category] += item.amount;
+                grandTotal += item.amount;
                 list.innerHTML += `<div class="history-item">
-                    <span>${item.date} ${item.emoji}
+                    <span>${item.date.split('-').slice(1).join('/')} ${item.emoji} $${item.amount} <span class="user-tag">${item.user}</span></span>
+                    <button class="del-btn" onclick="if(confirm('要刪除嗎？')) firebase.database().ref('our_budget_v4').child('${k}').remove()">×</button>
+                </div>`;
+            });
+        }
+        chart.data.datasets[0].data = Object.values(totals);
+        chart.update();
+        document.getElementById('totalDisplay').innerText = `總計：$${grandTotal.toLocaleString()}`;
+    });
+</script>
+
+</body>
+</html>
