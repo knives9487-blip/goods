@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我們的共同記帳本</title>
+    <title>我們的共同記帳本 v4</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #36A2EB; --bg: #f4f7f6; }
         body { font-family: sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 15px; margin: 0; }
-        .app-card { width: 100%; max-width: 480px; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .app-card { width: 100%; max-width: 500px; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
         .user-selector { display: flex; gap: 10px; margin-bottom: 15px; justify-content: center; }
         .user-btn { flex: 1; padding: 10px; border: 2px solid #eee; border-radius: 20px; background: none; cursor: pointer; font-size: 0.9rem; }
         .user-btn.active { border-color: var(--primary); background: #eef7ff; font-weight: bold; color: var(--primary); }
         input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; margin-bottom: 10px; font-size: 1rem; }
         
-        /* 網格改為 2x4 或 3x3 以容納第 7 個按鈕 */
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
-        .btn-cat { border: none; padding: 12px 2px; border-radius: 10px; background: #f0f0f0; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 0.85rem; }
+        /* 調整為 2x5 或彈性網格 */
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 8px; margin-bottom: 20px; }
+        .btn-cat { border: none; padding: 12px 2px; border-radius: 10px; background: #f0f0f0; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 0.8rem; }
         .btn-cat:active { background: #ddd; transform: scale(0.95); }
         .emoji { font-size: 1.3rem; margin-bottom: 4px; }
 
@@ -48,7 +48,10 @@
         <button class="btn-cat" onclick="save('行', '🚌')"><span class="emoji">🚌</span>行</button>
         <button class="btn-cat" onclick="save('育', '📖')"><span class="emoji">📖</span>育</button>
         <button class="btn-cat" onclick="save('樂', '🎮')"><span class="emoji">🎮</span>樂</button>
-        <button class="btn-cat" onclick="save('繳費', '🧧')" style="background: #fff0f0; border: 1px solid #ffcccc;"><span class="emoji">🧧</span>繳費</button>
+        <button class="btn-cat" onclick="save('繳費', '🧧')"><span class="emoji">🧧</span>繳費</button>
+        <button class="btn-cat" onclick="save('網購', '🛒')"><span class="emoji">🛒</span>網購</button>
+        <button class="btn-cat" onclick="save('超市', '🏢')"><span class="emoji">🏢</span>超市</button>
+        <button class="btn-cat" onclick="save('貸款', '🏦')"><span class="emoji">🏦</span>貸款</button>
     </div>
 
     <div style="height: 220px;"><canvas id="myChart"></canvas></div>
@@ -59,6 +62,7 @@
 </div>
 
 <script>
+    // 請確認此處 Config 是否與你的 Firebase 一致
     const firebaseConfig = {
         apiKey: "AIzaSyAKP1RNsdH6PzkpG5s_cJKvYiqWw4ogTxM",
         authDomain: "news-7faa3.firebaseapp.com",
@@ -71,7 +75,7 @@
     };
 
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.database().ref('our_budget_v3');
+    const db = firebase.database().ref('our_budget_v4');
 
     let currentUser = "我";
     document.getElementById('dateInput').valueAsDate = new Date();
@@ -86,13 +90,13 @@
     const chart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['食', '衣', '住', '行', '育', '樂', '繳費'],
+            labels: ['食', '衣', '住', '行', '育', '樂', '繳費', '網購', '超市', '貸款'],
             datasets: [{ 
-                data: [0,0,0,0,0,0,0], 
-                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E74C3C'] 
+                data: [0,0,0,0,0,0,0,0,0,0], 
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E74C3C', '#2ECC71', '#F39C12', '#34495E'] 
             }]
         },
-        options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } } }
+        options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
     });
 
     function save(cat, emoji) {
@@ -101,8 +105,6 @@
         if (amt > 0) {
             db.push({ date, category: cat, amount: amt, user: currentUser, ts: Date.now(), emoji: emoji });
             document.getElementById('amountInput').value = '';
-        } else {
-            alert("請輸入金額");
         }
     }
 
@@ -110,7 +112,7 @@
         const data = snap.val();
         const list = document.getElementById('historyList');
         list.innerHTML = '';
-        let totals = { '食':0, '衣':0, '住':0, '行':0, '育':0, '樂':0, '繳費':0 };
+        let totals = { '食':0, '衣':0, '住':0, '行':0, '育':0, '樂':0, '繳費':0, '網購':0, '超市':0, '貸款':0 };
         let grandTotal = 0;
 
         if (data) {
@@ -122,7 +124,7 @@
                 grandTotal += item.amount;
                 list.innerHTML += `<div class="history-item">
                     <span>${item.date.split('-').slice(1).join('/')} ${item.emoji} $${item.amount} <span class="user-tag">${item.user}</span></span>
-                    <button class="del-btn" onclick="if(confirm('要刪除嗎？')) firebase.database().ref('our_budget_v3').child('${k}').remove()">×</button>
+                    <button class="del-btn" onclick="if(confirm('要刪除嗎？')) firebase.database().ref('our_budget_v4').child('${k}').remove()">×</button>
                 </div>`;
             });
         }
