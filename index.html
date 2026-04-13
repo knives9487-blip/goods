@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>甜蜜帳本 - 完整版</title>
+    <title>甜蜜帳本</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
@@ -11,20 +11,28 @@
     
     <style>
         :root { --primary: #FFB7C5; --secondary: #FF8E9D; --bg: #FFF5F7; --safe: #D8A7CA; --warning: #FFB3A7; --danger: #FF4D6D; }
-        body { font-family: sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 15px; margin: 0; color: #5D5D5D; font-size: 1rem; }
-        .app-card { width: 100%; max-width: 500px; background: white; padding: 20px; border-radius: 25px; box-shadow: 0 10px 30px rgba(255, 183, 197, 0.2); }
+        body { font-family: sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 0; margin: 0; color: #5D5D5D; overflow-x: hidden; }
         
-        /* 預算進度區塊 */
+        /* 下拉刷新樣式 */
+        #ptr-element { 
+            position: absolute; top: -60px; left: 0; width: 100%; height: 60px; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 1.5rem; transition: transform 0.2s; z-index: 10;
+        }
+        .refreshing #ptr-element { transform: translateY(60px); }
+        .ptr-icon { transition: transform 0.2s; color: var(--secondary); }
+        
+        #main-content { transition: transform 0.3s cubic-bezier(0,0,0.31,1); width: 100%; max-width: 500px; }
+        .app-card { background: white; padding: 20px; border-radius: 0 0 25px 25px; box-shadow: 0 10px 30px rgba(255, 183, 197, 0.2); min-height: 100vh; box-sizing: border-box; }
+        
+        /* 預算與 UI 樣式 */
         .budget-section { margin-bottom: 20px; background: #FFF9FA; border: 1.5px solid #FFE0E6; padding: 15px; border-radius: 20px; }
         .budget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .progress-container { width: 100%; height: 14px; background: #F0F0F0; border-radius: 10px; overflow: hidden; }
         #progress-bar { width: 0%; height: 100%; background: var(--safe); transition: all 0.5s ease; }
         .budget-footer { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.8rem; font-weight: bold; }
 
-        /* 圖表容器 */
         .chart-container { position: relative; height: 180px; width: 100%; margin: 10px 0; }
-
-        /* 使用者切換 */
         .user-selector { display: flex; gap: 10px; margin-bottom: 15px; }
         .user-btn { flex: 1; padding: 12px; border: 2px solid #FFE0E6; border-radius: 18px; background: white; cursor: pointer; font-size: 0.95rem; color: #FF8E9D; font-weight: bold; }
         .user-btn.active { border-color: var(--secondary); background: #FF8E9D; color: white; }
@@ -34,12 +42,10 @@
         .btn-cat { border: none; padding: 12px 2px; border-radius: 18px; background: #FFF0F3; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 0.85rem; color: #FF758F; }
         .emoji { font-size: 1.5rem; margin-bottom: 5px; }
 
-        /* 分頁標籤 */
         .tab-container { display: flex; justify-content: center; gap: 10px; margin: 10px 0; border-bottom: 2px solid #FFF0F3; padding-bottom: 10px; }
         .tab { padding: 8px 15px; border-radius: 10px; font-size: 0.9rem; cursor: pointer; color: #FFB7C5; font-weight: bold; }
         .tab.active { background: #FF8E9D; color: white; }
 
-        /* 歷史明細 */
         .date-group { background: #FFF0F3; padding: 10px 15px; border-radius: 12px; margin: 15px 0 8px 0; font-size: 0.9rem; font-weight: bold; color: #FF758F; display: flex; justify-content: space-between; }
         .history-item { padding: 14px; border-bottom: 1px solid #FFF0F3; }
         .history-main { display: flex; justify-content: space-between; align-items: center; }
@@ -49,66 +55,74 @@
         .del-btn { color: #FFB3B3; font-size: 1.4rem; border: none; background: none; cursor: pointer; }
         
         #totalDisplay { font-size: 1.4rem; text-align: center; margin: 15px 0; color: #FF8E9D; font-weight: bold; }
+        
+        /* 旋轉動畫 */
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .spinning { animation: spin 1s linear infinite; }
     </style>
 </head>
 <body>
 
-<div class="app-card">
-    <h2 style="text-align:center; color: #FF758F;">🌸 甜蜜帳本</h2>
+<div id="ptr-element"><span class="ptr-icon" id="ptr-icon">🌸</span></div>
 
-    <div class="budget-section">
-        <div class="budget-header">
-            <span style="font-size:0.9rem; font-weight:bold; color:#FF758F;">✨ 預算進度 <span onclick="setBudget()" style="cursor:pointer">⚙️</span></span>
-            <span id="percent-label" style="font-size:0.85rem; font-weight:bold;">0%</span>
+<div id="main-content">
+    <div class="app-card">
+        <h2 style="text-align:center; color: #FF758F; margin-top: 0;">🌸 甜蜜帳本</h2>
+
+        <div class="budget-section">
+            <div class="budget-header">
+                <span style="font-size:0.9rem; font-weight:bold; color:#FF758F;">✨ 預算進度 <span onclick="setBudget()" style="cursor:pointer">⚙️</span></span>
+                <span id="percent-label" style="font-size:0.85rem; font-weight:bold;">0%</span>
+            </div>
+            <div class="progress-container"><div id="progress-bar"></div></div>
+            <div class="budget-footer">
+                <span id="used-display" style="color: #FF8E9D;">已用: $0</span>
+                <span id="remain-display" style="color: #D8A7CA;">剩餘: $0</span>
+            </div>
         </div>
-        <div class="progress-container"><div id="progress-bar"></div></div>
-        <div class="budget-footer">
-            <span id="used-display" style="color: #FF8E9D;">已用: $0</span>
-            <span id="remain-display" style="color: #D8A7CA;">剩餘: $0</span>
+        
+        <div class="user-selector">
+            <div style="flex:1; display:flex; flex-direction:column; gap:5px;">
+                <button class="user-btn active" id="btn1" onclick="selectUser(1)">--</button>
+                <span style="font-size:0.7rem; text-align:center; color:#FFC1CC; cursor:pointer;" onclick="renameUser(1)">✎ 改名</span>
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column; gap:5px;">
+                <button class="user-btn" id="btn2" onclick="selectUser(2)">--</button>
+                <span style="font-size:0.7rem; text-align:center; color:#FFC1CC; cursor:pointer;" onclick="renameUser(2)">✎ 改名</span>
+            </div>
         </div>
-    </div>
-    
-    <div class="user-selector">
-        <div style="flex:1; display:flex; flex-direction:column; gap:5px;">
-            <button class="user-btn active" id="btn1" onclick="selectUser(1)">--</button>
-            <span style="font-size:0.7rem; text-align:center; color:#FFC1CC; cursor:pointer;" onclick="renameUser(1)">✎ 改名</span>
+
+        <input type="date" id="dateInput">
+        <input type="number" id="amountInput" placeholder="金額" inputmode="decimal">
+        <input type="text" id="noteInput" placeholder="備註...">
+        
+        <div class="grid">
+            <button class="btn-cat" onclick="save('食', '🍱')"><span class="emoji">🍱</span>食</button>
+            <button class="btn-cat" onclick="save('衣', '👕')"><span class="emoji">👕</span>衣</button>
+            <button class="btn-cat" onclick="save('住', '🏠')"><span class="emoji">🏠</span>住</button>
+            <button class="btn-cat" onclick="save('行', '🚌')"><span class="emoji">🚌</span>行</button>
+            <button class="btn-cat" onclick="save('樂', '🎮')"><span class="emoji">🎮</span>樂</button>
+            <button class="btn-cat" onclick="save('繳費', '🧧')"><span class="emoji">🧧</span>繳費</button>
+            <button class="btn-cat" onclick="save('超市', '🏢')"><span class="emoji">🏢</span>超市</button>
+            <button class="btn-cat" onclick="save('網購', '🛒')"><span class="emoji">🛒</span>網購</button>
         </div>
-        <div style="flex:1; display:flex; flex-direction:column; gap:5px;">
-            <button class="user-btn" id="btn2" onclick="selectUser(2)">--</button>
-            <span style="font-size:0.7rem; text-align:center; color:#FFC1CC; cursor:pointer;" onclick="renameUser(2)">✎ 改名</span>
+
+        <div style="text-align:center;"><input type="month" id="monthPicker" style="width: auto;" onchange="renderData()"></div>
+        <div class="chart-container"><canvas id="myChart"></canvas></div>
+
+        <div class="tab-container">
+            <div class="tab active" id="tab-all" onclick="setFilter('all')">全部</div>
+            <div class="tab" id="tab-u1" onclick="setFilter(1)">--</div>
+            <div class="tab" id="tab-u2" onclick="setFilter(2)">--</div>
         </div>
+
+        <div id="totalDisplay">月支出：$0</div>
+        <div id="historyList"></div>
     </div>
-
-    <input type="date" id="dateInput">
-    <input type="number" id="amountInput" placeholder="金額" inputmode="decimal">
-    <input type="text" id="noteInput" placeholder="備註...">
-    
-    <div class="grid">
-        <button class="btn-cat" onclick="save('食', '🍱')"><span class="emoji">🍱</span>食</button>
-        <button class="btn-cat" onclick="save('衣', '👕')"><span class="emoji">👕</span>衣</button>
-        <button class="btn-cat" onclick="save('住', '🏠')"><span class="emoji">🏠</span>住</button>
-        <button class="btn-cat" onclick="save('行', '🚌')"><span class="emoji">🚌</span>行</button>
-        <button class="btn-cat" onclick="save('樂', '🎮')"><span class="emoji">🎮</span>樂</button>
-        <button class="btn-cat" onclick="save('繳費', '🧧')"><span class="emoji">🧧</span>繳費</button>
-        <button class="btn-cat" onclick="save('超市', '🏢')"><span class="emoji">🏢</span>超市</button>
-        <button class="btn-cat" onclick="save('網購', '🛒')"><span class="emoji">🛒</span>網購</button>
-    </div>
-
-    <div style="text-align:center;"><input type="month" id="monthPicker" style="width: auto;" onchange="renderData()"></div>
-    <div class="chart-container"><canvas id="myChart"></canvas></div>
-
-    <div class="tab-container">
-        <div class="tab active" id="tab-all" onclick="setFilter('all')">全部</div>
-        <div class="tab" id="tab-u1" onclick="setFilter(1)">--</div>
-        <div class="tab" id="tab-u2" onclick="setFilter(2)">--</div>
-    </div>
-
-    <div id="totalDisplay">月支出：$0</div>
-    <div id="historyList"></div>
 </div>
 
 <script>
-    // --- 1. Firebase 配置 ---
+    // --- Firebase 配置 ---
     const firebaseConfig = {
         apiKey: "AIzaSyAKP1RNsdH6PzkpG5s_cJKvYiqWw4ogTxM",
         authDomain: "news-7faa3.firebaseapp.com",
@@ -123,7 +137,49 @@
     let uName1 = "我", uName2 = "伴侶", activeUserIndex = 1, currentFilter = 'all';
     let cachedData = null, monthlyBudget = 20000, myChart = null;
 
-    // --- 2. 初始化圖表 ---
+    // --- 下拉刷新邏輯 ---
+    let startY = 0;
+    const content = document.getElementById('main-content');
+    const ptrIcon = document.getElementById('ptr-icon');
+
+    window.addEventListener('touchstart', (e) => {
+        if (window.scrollY === 0) startY = e.touches[0].pageY;
+    }, {passive: true});
+
+    window.addEventListener('touchmove', (e) => {
+        const moveY = e.touches[0].pageY;
+        const diff = moveY - startY;
+        if (window.scrollY === 0 && diff > 0) {
+            const pullDistance = Math.min(diff / 2, 80);
+            content.style.transform = `translateY(${pullDistance}px)`;
+            ptrIcon.style.transform = `rotate(${pullDistance * 5}deg)`;
+            if (diff > 150) ptrIcon.innerText = "✨"; else ptrIcon.innerText = "🌸";
+        }
+    }, {passive: true});
+
+    window.addEventListener('touchend', (e) => {
+        const diff = e.changedTouches[0].pageY - startY;
+        if (window.scrollY === 0 && diff > 150) {
+            content.style.transform = `translateY(60px)`;
+            ptrIcon.classList.add('spinning');
+            ptrIcon.innerText = "⏳";
+            
+            // 模擬刷新數據
+            db.once('value', (snap) => {
+                cachedData = snap.val();
+                renderData();
+                setTimeout(() => {
+                    content.style.transform = `translateY(0)`;
+                    ptrIcon.classList.remove('spinning');
+                    ptrIcon.innerText = "🌸";
+                }, 600);
+            });
+        } else {
+            content.style.transform = `translateY(0)`;
+        }
+    });
+
+    // --- 核心邏輯 (圖表、存檔、編輯等) ---
     function initChart() {
         const ctx = document.getElementById('myChart').getContext('2d');
         myChart = new Chart(ctx, {
@@ -139,7 +195,6 @@
         });
     }
 
-    // --- 3. 核心功能 ---
     settingsDb.on('value', (snap) => {
         const val = snap.val() || {};
         uName1 = val.user1 || "我"; uName2 = val.user2 || "伴侶";
@@ -226,7 +281,6 @@
 
         if (myChart) { myChart.data.datasets[0].data = Object.values(cats); myChart.update(); }
 
-        // 更新進度條與金額顯示
         const p = (gt / monthlyBudget) * 100;
         const bar = document.getElementById('progress-bar');
         const lbl = document.getElementById('percent-label');
