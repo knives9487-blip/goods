@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>共同記帳 - 下拉刷新版</title>
+    <title>共同記帳 - 簡潔進階版</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#36A2EB">
@@ -19,10 +19,9 @@
         body { 
             font-family: sans-serif; background: var(--bg); 
             display: flex; justify-content: center; padding: 15px; margin: 0; 
-            overflow-x: hidden; /* 防止橫向滾動 */
+            overflow-x: hidden;
         }
         
-        /* 下拉刷新指示器 */
         #pull-to-refresh {
             position: fixed; top: -50px; left: 0; right: 0;
             height: 50px; display: flex; align-items: center; justify-content: center;
@@ -96,7 +95,7 @@
         <input type="month" id="monthPicker" class="month-select" onchange="renderData()">
     </div>
 
-    <div style="height: 240px;"><canvas id="myChart"></canvas></div>
+    <div style="height: 220px;"><canvas id="myChart"></canvas></div>
     
     <h3 id="totalDisplay" style="text-align:center; color:#333; margin: 20px 0;">該月總計：$0</h3>
 
@@ -148,14 +147,13 @@
         const transformStyle = window.getComputedStyle(appContent).getPropertyValue('transform');
         const matrix = new WebKitCSSMatrix(transformStyle);
         if (matrix.m42 > 50) {
-            renderData(); // 重新渲染
+            renderData();
             refreshIndicator.innerText = "✨ 資料已同步";
             setTimeout(() => { refreshIndicator.innerText = "🔄 釋放以更新資料..."; }, 1500);
         }
         appContent.style.transform = '';
         refreshIndicator.style.transform = '';
     });
-    // ------------------
 
     const now = new Date();
     document.getElementById('dateInput').valueAsDate = now;
@@ -177,7 +175,12 @@
                 backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E74C3C', '#2ECC71', '#F39C12', '#34495E'] 
             }]
         },
-        options: { maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
+        options: { 
+            maintainAspectRatio: false, 
+            plugins: { 
+                legend: { display: false } // 隱藏圖例說明
+            } 
+        }
     });
 
     function save(cat, emoji) {
