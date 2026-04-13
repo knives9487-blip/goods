@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>共同記帳 - 預算自訂版</title>
+    <title>共同記帳 - 名稱自訂版</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#36A2EB">
@@ -17,48 +17,39 @@
     <style>
         :root { --primary: #36A2EB; --bg: #f4f7f6; --safe: #36A2EB; --warning: #ff9f40; --danger: #ff4d4d; }
         body { font-family: sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 15px; margin: 0; overflow-x: hidden; }
-        
-        /* App 卡片容器 */
         .app-card { width: 100%; max-width: 500px; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); position: relative; }
 
-        /* --- 預算區塊優化 --- */
-        .budget-section { 
-            margin-bottom: 20px; background: #fff; border: 1px solid #eee; padding: 15px; border-radius: 15px; 
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
-        }
+        /* 預算區塊 */
+        .budget-section { margin-bottom: 20px; background: #fff; border: 1px solid #eee; padding: 15px; border-radius: 15px; }
         .budget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .budget-title { font-size: 0.9rem; font-weight: bold; color: #444; display: flex; align-items: center; gap: 5px; }
-        .setting-icon { cursor: pointer; color: #aaa; font-size: 1rem; transition: 0.2s; }
-        .setting-icon:hover { color: var(--primary); }
-        
-        .budget-value { font-size: 0.8rem; color: #888; }
+        .setting-icon { cursor: pointer; color: #aaa; font-size: 1rem; }
         .progress-container { width: 100%; height: 14px; background: #eee; border-radius: 10px; overflow: hidden; }
-        #progress-bar { width: 0%; height: 100%; background: var(--safe); transition: width 0.6s cubic-bezier(0.1, 0.7, 0.1, 1); }
-        /* ----------------------- */
+        #progress-bar { width: 0%; height: 100%; background: var(--safe); transition: width 0.6s ease; }
 
+        /* --- 使用者選擇器優化 --- */
         .user-selector { display: flex; gap: 10px; margin-bottom: 15px; }
-        .user-btn { flex: 1; padding: 12px; border: 2px solid #eee; border-radius: 15px; background: none; cursor: pointer; font-size: 0.9rem; }
+        .user-wrapper { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+        .user-btn { width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 15px; background: none; cursor: pointer; font-size: 0.9rem; transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .user-btn.active { border-color: var(--primary); background: #eef7ff; font-weight: bold; color: var(--primary); }
+        .rename-link { font-size: 0.7rem; color: #bbb; text-align: center; cursor: pointer; text-decoration: underline; }
         
         input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box; margin-bottom: 10px; font-size: 1rem; outline: none; }
-        input:focus { border-color: var(--primary); }
-
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 8px; margin-bottom: 20px; }
         .btn-cat { border: none; padding: 12px 2px; border-radius: 12px; background: #f5f5f5; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 0.8rem; }
-        .btn-cat:active { transform: scale(0.95); background: #eee; }
         .emoji { font-size: 1.4rem; margin-bottom: 4px; }
 
         .filter-section { margin-bottom: 15px; text-align: center; }
-        .month-select { padding: 8px 12px; border-radius: 10px; border: 1px solid #ddd; font-weight: bold; color: var(--primary); background: white; cursor: pointer; }
+        .month-select { padding: 8px 12px; border-radius: 10px; border: 1px solid #ddd; font-weight: bold; color: var(--primary); background: white; }
 
         .date-group { background: #f8f9fa; padding: 8px 12px; border-radius: 10px; margin: 15px 0 8px 0; font-size: 0.85rem; font-weight: bold; display: flex; justify-content: space-between; }
         .history-item { padding: 12px; border-bottom: 1px solid #f9f9f9; }
         .history-main { display: flex; justify-content: space-between; align-items: center; }
-        .history-note { font-size: 0.8rem; color: #999; margin-top: 5px; padding-left: 2px; }
         .user-tag { font-size: 0.7rem; background: #eef7ff; padding: 2px 6px; border-radius: 5px; color: var(--primary); margin-left: 5px; }
         .action-btns { display: flex; gap: 12px; }
         .edit-btn { color: var(--primary); border: none; background: none; cursor: pointer; font-size: 1rem; }
         .del-btn { color: #ff4d4d; border: none; background: none; cursor: pointer; font-size: 1.2rem; }
+        .history-note { font-size: 0.8rem; color: #999; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -68,23 +59,22 @@
 
     <div class="budget-section">
         <div class="budget-header">
-            <div class="budget-title">
-                📊 本月預算進度 
-                <span class="setting-icon" onclick="setBudget()" title="設定預算">⚙️</span>
-            </div>
-            <div class="budget-value" id="percent-label">0%</div>
+            <div class="budget-title">📊 預算進度 <span class="setting-icon" onclick="setBudget()">⚙️</span></div>
+            <div id="percent-label" style="font-size: 0.8rem; color: #888;">0%</div>
         </div>
-        <div class="progress-container">
-            <div id="progress-bar"></div>
-        </div>
-        <div id="budget-summary" style="font-size: 0.75rem; color: #999; margin-top: 8px; text-align: right;">
-            剩餘額度：$0 / 總預算：$0
-        </div>
+        <div class="progress-container"><div id="progress-bar"></div></div>
+        <div id="budget-summary" style="font-size: 0.7rem; color: #999; margin-top: 8px; text-align: right;">剩餘：$0 / $0</div>
     </div>
     
     <div class="user-selector">
-        <button class="user-btn active" id="btn1" onclick="setUser('我')">我</button>
-        <button class="user-btn" id="btn2" onclick="setUser('伴侶')">伴侶</button>
+        <div class="user-wrapper">
+            <button class="user-btn active" id="btn1" onclick="setUser(uName1)">--</button>
+            <span class="rename-link" onclick="renameUser(1)">改名</span>
+        </div>
+        <div class="user-wrapper">
+            <button class="user-btn" id="btn2" onclick="setUser(uName2)">--</button>
+            <span class="rename-link" onclick="renameUser(2)">改名</span>
+        </div>
     </div>
 
     <input type="date" id="dateInput">
@@ -112,7 +102,6 @@
 </div>
 
 <script>
-    // Firebase 配置
     const firebaseConfig = {
         apiKey: "AIzaSyAKP1RNsdH6PzkpG5s_cJKvYiqWw4ogTxM",
         authDomain: "news-7faa3.firebaseapp.com",
@@ -124,34 +113,48 @@
     const db = firebase.database().ref('our_budget_v4');
     const settingsDb = firebase.database().ref('our_budget_settings');
 
-    let currentUser = "我", cachedData = null, monthlyBudget = 20000;
+    let uName1 = "我", uName2 = "伴侶", currentUser = "";
+    let cachedData = null, monthlyBudget = 20000;
 
-    // 設定預算函式
-    function setBudget() {
-        const val = prompt("請設定每月的預算上限：", monthlyBudget);
-        if (val !== null && !isNaN(val) && val > 0) {
-            settingsDb.child('limit').set(parseFloat(val));
+    // --- 使用者名稱功能 ---
+    function renameUser(idx) {
+        const oldName = idx === 1 ? uName1 : uName2;
+        const newName = prompt("請輸入新的名稱：", oldName);
+        if (newName && newName.trim()) {
+            settingsDb.child(`user${idx}`).set(newName.trim().substring(0, 8));
         }
     }
 
-    // 監聽雲端預算設定
-    settingsDb.child('limit').on('value', (snap) => {
-        monthlyBudget = snap.val() || 20000;
+    settingsDb.on('value', (snap) => {
+        const val = snap.val() || {};
+        uName1 = val.user1 || "我";
+        uName2 = val.user2 || "伴侶";
+        monthlyBudget = val.limit || 20000;
+        
+        document.getElementById('btn1').innerText = uName1;
+        document.getElementById('btn2').innerText = uName2;
+        
+        if (!currentUser) setUser(uName1); // 初始選擇
         renderData();
     });
 
-    function setUser(u) {
-        currentUser = u;
-        document.getElementById('btn1').classList.toggle('active', u === '我');
-        document.getElementById('btn2').classList.toggle('active', u === '伴侶');
+    function setUser(name) {
+        currentUser = name;
+        document.getElementById('btn1').classList.toggle('active', name === uName1);
+        document.getElementById('btn2').classList.toggle('active', name === uName2);
     }
 
+    function setBudget() {
+        const val = prompt("設定每月預算：", monthlyBudget);
+        if (val && !isNaN(val)) settingsDb.child('limit').set(parseFloat(val));
+    }
+
+    // 初始化
     const now = new Date();
     document.getElementById('dateInput').valueAsDate = now;
     document.getElementById('monthPicker').value = now.toISOString().slice(0, 7);
 
-    const ctx = document.getElementById('myChart').getContext('2d');
-    const chart = new Chart(ctx, {
+    const chart = new Chart(document.getElementById('myChart'), {
         type: 'doughnut',
         data: {
             labels: ['食', '衣', '住', '行', '樂', '超市', '繳費', '其他'],
@@ -163,12 +166,7 @@
     function save(cat, emoji) {
         const amt = parseFloat(document.getElementById('amountInput').value);
         if (amt > 0) {
-            db.push({ 
-                date: document.getElementById('dateInput').value, 
-                category: cat, amount: amt, user: currentUser, 
-                ts: Date.now(), emoji: emoji, 
-                note: document.getElementById('noteInput').value.trim() 
-            });
+            db.push({ date: document.getElementById('dateInput').value, category: cat, amount: amt, user: currentUser, ts: Date.now(), emoji: emoji, note: document.getElementById('noteInput').value.trim() });
             document.getElementById('amountInput').value = ''; 
             document.getElementById('noteInput').value = '';
         }
@@ -179,13 +177,13 @@
         const newAmt = prompt("修改金額：", item.amount);
         if (newAmt !== null && !isNaN(newAmt)) {
             const newNote = prompt("修改備註：", item.note || "");
-            if (newNote !== null) db.child(id).update({ amount: parseFloat(newAmt), note: newNote.trim() });
+            db.child(id).update({ amount: parseFloat(newAmt), note: (newNote || "").trim() });
         }
     }
 
     function renderData() {
         if (!cachedData) return;
-        const selectedMonth = document.getElementById('monthPicker').value;
+        const month = document.getElementById('monthPicker').value;
         const list = document.getElementById('historyList');
         list.innerHTML = '';
         let totals = { '食':0, '衣':0, '住':0, '行':0, '樂':0, '超市':0, '繳費':0, '其他':0 };
@@ -193,7 +191,7 @@
 
         Object.keys(cachedData).forEach(k => {
             const item = cachedData[k];
-            if (item.date && item.date.startsWith(selectedMonth)) {
+            if (item.date && item.date.startsWith(month)) {
                 if (!groups[item.date]) groups[item.date] = [];
                 groups[item.date].push({ ...item, id: k });
                 if(totals.hasOwnProperty(item.category)) totals[item.category] += item.amount;
@@ -201,25 +199,20 @@
             }
         });
 
-        // 進度條與餘額計算
         const percent = Math.min((grandTotal / monthlyBudget) * 100, 100).toFixed(1);
-        const remaining = Math.max(monthlyBudget - grandTotal, 0);
         const bar = document.getElementById('progress-bar');
         bar.style.width = percent + '%';
         bar.style.backgroundColor = percent < 50 ? '#36A2EB' : (percent < 85 ? '#ff9f40' : '#ff4d4d');
-        
         document.getElementById('percent-label').innerText = `${percent}%`;
-        document.getElementById('budget-summary').innerText = `剩餘：$${remaining.toLocaleString()} / 總預算：$${monthlyBudget.toLocaleString()}`;
+        document.getElementById('budget-summary').innerText = `剩餘：$${Math.max(monthlyBudget-grandTotal, 0).toLocaleString()} / $${monthlyBudget.toLocaleString()}`;
 
-        // 明細列表
         Object.keys(groups).sort((a, b) => new Date(b) - new Date(a)).forEach(date => {
             let dayHtml = '', dayTotal = 0;
             groups[date].sort((a,b)=>b.ts - a.ts).forEach(item => {
                 dayTotal += item.amount;
-                const noteHtml = item.note ? `<div class="history-note">💬 ${item.note}</div>` : '';
-                dayHtml += `<div class="history-item"><div class="history-main"><span>${item.emoji} ${item.category} $${item.amount} <span class="user-tag">${item.user}</span></span><div class="action-btns"><button class="edit-btn" onclick="editItem('${item.id}')">✏️</button><button class="del-btn" onclick="if(confirm('要刪除嗎？')) db.child('${item.id}').remove()">×</button></div></div>${noteHtml}</div>`;
+                dayHtml += `<div class="history-item"><div class="history-main"><span>${item.emoji} ${item.category} $${item.amount} <span class="user-tag">${item.user}</span></span><div class="action-btns"><button class="edit-btn" onclick="editItem('${item.id}')">✏️</button><button class="del-btn" onclick="if(confirm('刪除？')) db.child('${item.id}').remove()">×</button></div></div>${item.note ? `<div class="history-note">💬 ${item.note}</div>` : ''}</div>`;
             });
-            list.innerHTML += `<div class="date-group"><span>📅 ${date.slice(5)}</span><span>日計: $${dayTotal}</span></div>${dayHtml}`;
+            list.innerHTML += `<div class="date-group"><span>📅 ${date.slice(5)}</span><span>$${dayTotal}</span></div>${dayHtml}`;
         });
 
         chart.data.datasets[0].data = Object.values(totals);
