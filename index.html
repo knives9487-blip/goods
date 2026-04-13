@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>共同記帳 - 簡潔進階版</title>
+    <title>共同記帳 - 狀態刷新版</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#36A2EB">
@@ -22,12 +22,23 @@
             overflow-x: hidden;
         }
         
+        /* 下拉刷新指示器優化 */
         #pull-to-refresh {
-            position: fixed; top: -50px; left: 0; right: 0;
-            height: 50px; display: flex; align-items: center; justify-content: center;
-            font-size: 0.8rem; color: var(--primary); transition: transform 0.2s;
-            z-index: 1000;
+            position: fixed; top: -60px; left: 0; right: 0;
+            height: 60px; display: flex; align-items: center; justify-content: center;
+            font-size: 0.9rem; color: var(--primary); font-weight: bold;
+            z-index: 1000; transition: transform 0.1s linear;
         }
+
+        /* 旋轉動畫 */
+        .spinner {
+            display: inline-block; width: 16px; height: 16px;
+            border: 2px solid rgba(54, 162, 235, 0.3);
+            border-radius: 50%; border-top-color: var(--primary);
+            animation: spin 1s linear infinite; margin-right: 8px;
+            display: none; /* 預設隱藏 */
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         .app-card { 
             width: 100%; max-width: 500px; background: white; 
@@ -63,7 +74,10 @@
 </head>
 <body>
 
-<div id="pull-to-refresh">🔄 釋放以更新資料...</div>
+<div id="pull-to-refresh">
+    <div class="spinner" id="refresh-spinner"></div>
+    <span id="refresh-text">⬇️ 下拉以刷新</span>
+</div>
 
 <div class="app-card" id="app-content">
     <h2 style="text-align:center; margin-bottom:15px;">💑 共同記帳</h2>
@@ -125,35 +139,73 @@
     let currentUser = "我";
     let cachedData = null;
 
-    // --- 下拉刷新邏輯 ---
+    // --- 優化後的下拉刷新邏輯 ---
     let touchStart = 0;
+    let isRefreshing = false;
     const appContent = document.getElementById('app-content');
     const refreshIndicator = document.getElementById('pull-to-refresh');
+    const refreshText = document.getElementById('refresh-text');
+    const refreshSpinner = document.getElementById('refresh-spinner');
 
     window.addEventListener('touchstart', (e) => {
-        if (window.scrollY === 0) touchStart = e.touches[0].pageY;
+        if (window.scrollY === 0 && !isRefreshing) touchStart = e.touches[0].pageY;
     }, {passive: true});
 
     window.addEventListener('touchmove', (e) => {
+        if (isRefreshing || window.scrollY > 0) return;
         const touchCurrent = e.touches[0].pageY;
         const diff = touchCurrent - touchStart;
-        if (window.scrollY === 0 && diff > 0 && diff < 80) {
+        
+        if (diff > 0 && diff < 100) {
             appContent.style.transform = `translateY(${diff}px)`;
             refreshIndicator.style.transform = `translateY(${diff}px)`;
+            
+            // 狀態判定
+            if (diff > 70) {
+                refreshText.innerText = "🆙 釋放以更新";
+            } else {
+                refreshText.innerText = "⬇️ 下拉以刷新";
+            }
         }
     }, {passive: true});
 
     window.addEventListener('touchend', () => {
+        if (isRefreshing) return;
         const transformStyle = window.getComputedStyle(appContent).getPropertyValue('transform');
         const matrix = new WebKitCSSMatrix(transformStyle);
-        if (matrix.m42 > 50) {
-            renderData();
-            refreshIndicator.innerText = "✨ 資料已同步";
-            setTimeout(() => { refreshIndicator.innerText = "🔄 釋放以更新資料..."; }, 1500);
+        const currentY = matrix.m42;
+
+        if (currentY > 70) {
+            startRefresh();
+        } else {
+            appContent.style.transform = '';
+            refreshIndicator.style.transform = '';
         }
-        appContent.style.transform = '';
-        refreshIndicator.style.transform = '';
     });
+
+    function startRefresh() {
+        isRefreshing = true;
+        refreshText.innerText = "🔄 同步中...";
+        refreshSpinner.style.display = "inline-block";
+        
+        // 保持懸停狀態
+        appContent.style.transform = 'translateY(60px)';
+        refreshIndicator.style.transform = 'translateY(60px)';
+
+        // 模擬刷新延遲（Firebase 其實很快，加延遲是為了讓使用者看到動畫）
+        setTimeout(() => {
+            renderData();
+            refreshText.innerText = "✅ 已更新";
+            refreshSpinner.style.display = "none";
+            
+            setTimeout(() => {
+                appContent.style.transform = '';
+                refreshIndicator.style.transform = '';
+                isRefreshing = false;
+            }, 600);
+        }, 800);
+    }
+    // -------------------------
 
     const now = new Date();
     document.getElementById('dateInput').valueAsDate = now;
@@ -175,12 +227,7 @@
                 backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E74C3C', '#2ECC71', '#F39C12', '#34495E'] 
             }]
         },
-        options: { 
-            maintainAspectRatio: false, 
-            plugins: { 
-                legend: { display: false } // 隱藏圖例說明
-            } 
-        }
+        options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
     });
 
     function save(cat, emoji) {
@@ -211,7 +258,6 @@
         const selectedMonth = document.getElementById('monthPicker').value;
         const list = document.getElementById('historyList');
         list.innerHTML = '';
-        
         let totals = { '食':0, '衣':0, '住':0, '行':0, '育':0, '樂':0, '繳費':0, '網購':0, '超市':0, '貸款':0 };
         let grandTotal = 0;
         let groups = {};
@@ -227,28 +273,16 @@
         });
 
         const sortedDates = Object.keys(groups).sort((a, b) => new Date(b) - new Date(a));
-
         sortedDates.forEach(date => {
             let dayTotal = 0;
             let dayHtml = '';
             groups[date].sort((a,b) => b.ts - a.ts).forEach(item => {
                 dayTotal += item.amount;
                 const displayNote = item.note ? `<div class="history-note">💬 ${item.note}</div>` : '';
-                dayHtml += `
-                    <div class="history-item">
-                        <div class="history-main">
-                            <span>${item.emoji} ${item.category} $${item.amount} <span class="user-tag">${item.user}</span></span>
-                            <div class="action-btns">
-                                <button class="edit-btn" onclick="editItem('${item.id}')">✏️</button>
-                                <button class="del-btn" onclick="if(confirm('要刪除嗎？')) db.child('${item.id}').remove()">×</button>
-                            </div>
-                        </div>
-                        ${displayNote}
-                    </div>`;
+                dayHtml += `<div class="history-item"><div class="history-main"><span>${item.emoji} ${item.category} $${item.amount} <span class="user-tag">${item.user}</span></span><div class="action-btns"><button class="edit-btn" onclick="editItem('${item.id}')">✏️</button><button class="del-btn" onclick="if(confirm('要刪除嗎？')) db.child('${item.id}').remove()">×</button></div></div>${displayNote}</div>`;
             });
             list.innerHTML += `<div class="date-group"><span>📅 ${date.slice(5)}</span><span class="day-total">日計: $${dayTotal}</span></div>${dayHtml}`;
         });
-
         chart.data.datasets[0].data = Object.values(totals);
         chart.update();
         document.getElementById('totalDisplay').innerText = `該月總計：$${grandTotal.toLocaleString()}`;
