@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>共同記帳 - 備註功能版</title>
+    <title>共同記帳 - 明細修改版</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -28,6 +28,8 @@
         .history-main { display: flex; justify-content: space-between; align-items: center; }
         .history-note { font-size: 0.8rem; color: #888; margin-top: 4px; padding-left: 2px; }
         .user-tag { font-size: 0.7rem; background: #eee; padding: 2px 6px; border-radius: 4px; margin-left: 5px; color: #666; }
+        .action-btns { display: flex; gap: 10px; }
+        .edit-btn { color: #36A2EB; border: none; background: none; cursor: pointer; font-size: 1.1rem; }
         .del-btn { color: #ff4d4d; border: none; background: none; cursor: pointer; font-size: 1.2rem; }
     </style>
 </head>
@@ -116,21 +118,36 @@
         const noteInput = document.getElementById('noteInput');
         const amt = parseFloat(amtInput.value);
         const date = document.getElementById('dateInput').value;
-        const note = noteInput.value.trim(); // 取得備註內容
+        const note = noteInput.value.trim();
 
         if (amt > 0) {
             db.push({ 
-                date, 
-                category: cat, 
-                amount: amt, 
-                user: currentUser, 
-                ts: Date.now(), 
-                emoji: emoji,
-                note: note // 存入資料庫
+                date, category: cat, amount: amt, user: currentUser, ts: Date.now(), emoji: emoji, note: note
             });
             amtInput.value = '';
-            noteInput.value = ''; // 儲存後清空備註
+            noteInput.value = '';
         }
+    }
+
+    // 新增：修改功能
+    function editItem(id) {
+        const item = cachedData[id];
+        const newAmount = prompt("請輸入新的金額：", item.amount);
+        if (newAmount === null) return; // 使用者按取消
+
+        const parsedAmount = parseFloat(newAmount);
+        if (isNaN(parsedAmount) || parsedAmount <= 0) {
+            alert("請輸入有效的正數字");
+            return;
+        }
+
+        const newNote = prompt("請輸入新的備註：", item.note || "");
+        if (newNote === null) return;
+
+        db.child(id).update({
+            amount: parsedAmount,
+            note: newNote.trim()
+        });
     }
 
     function renderData() {
@@ -149,14 +166,16 @@
                 if(totals.hasOwnProperty(item.category)) totals[item.category] += item.amount;
                 grandTotal += item.amount;
                 
-                // 明細顯示：如果有備註則顯示備註文字
                 const displayNote = item.note ? `<div class="history-note">💬 ${item.note}</div>` : '';
                 
                 list.innerHTML += `
                     <div class="history-item">
                         <div class="history-main">
                             <span>${item.date.slice(5)} ${item.emoji} $${item.amount} <span class="user-tag">${item.user}</span></span>
-                            <button class="del-btn" onclick="if(confirm('要刪除嗎？')) db.child('${k}').remove()">×</button>
+                            <div class="action-btns">
+                                <button class="edit-btn" onclick="editItem('${k}')">✏️</button>
+                                <button class="del-btn" onclick="if(confirm('要刪除嗎？')) db.child('${k}').remove()">×</button>
+                            </div>
                         </div>
                         ${displayNote}
                     </div>`;
