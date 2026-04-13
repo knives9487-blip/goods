@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>甜蜜帳本 - 名稱同步版</title>
+    <title>甜蜜帳本 - 分類查看版</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
@@ -14,33 +14,33 @@
         body { font-family: sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 15px; margin: 0; color: #5D5D5D; font-size: 1rem; }
         .app-card { width: 100%; max-width: 500px; background: white; padding: 20px; border-radius: 25px; box-shadow: 0 10px 30px rgba(255, 183, 197, 0.2); }
         
-        /* 預算區塊 */
         .budget-section { margin-bottom: 20px; background: #FFF9FA; border: 1.5px solid #FFE0E6; padding: 15px; border-radius: 20px; }
         .budget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .budget-title { font-size: 0.95rem; font-weight: bold; color: #FF758F; }
         .progress-container { width: 100%; height: 14px; background: #F0F0F0; border-radius: 10px; overflow: hidden; }
         #progress-bar { width: 0%; height: 100%; background: var(--safe); transition: width 0.8s ease; }
-        #percent-label { font-size: 0.85rem; color: #FF8E9D; font-weight: bold; }
 
-        /* 使用者選擇器 */
         .user-selector { display: flex; gap: 10px; margin-bottom: 15px; }
         .user-wrapper { flex: 1; display: flex; flex-direction: column; gap: 5px; }
-        .user-btn { width: 100%; padding: 12px; border: 2px solid #FFE0E6; border-radius: 18px; background: white; cursor: pointer; font-size: 0.95rem; color: #FF8E9D; transition: 0.3s; }
-        .user-btn.active { border-color: var(--secondary); background: #FF8E9D; font-weight: bold; color: white; }
-        .rename-link { font-size: 0.75rem; color: #FFC1CC; text-align: center; cursor: pointer; }
+        .user-btn { width: 100%; padding: 12px; border: 2px solid #FFE0E6; border-radius: 18px; background: white; cursor: pointer; font-size: 0.95rem; color: #FF8E9D; font-weight: bold; }
+        .user-btn.active { border-color: var(--secondary); background: #FF8E9D; color: white; }
         
         input { width: 100%; padding: 12px; border: 1.5px solid #FFE0E6; border-radius: 15px; box-sizing: border-box; margin-bottom: 10px; font-size: 1rem; outline: none; }
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
         .btn-cat { border: none; padding: 12px 2px; border-radius: 18px; background: #FFF0F3; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 0.85rem; color: #FF758F; }
         .emoji { font-size: 1.5rem; margin-bottom: 5px; }
 
-        .date-group { background: #FFF0F3; padding: 10px 15px; border-radius: 12px; margin: 18px 0 10px 0; font-size: 0.9rem; font-weight: bold; color: #FF758F; display: flex; justify-content: space-between; }
+        /* 分類標籤樣式 */
+        .tab-container { display: flex; justify-content: center; gap: 10px; margin: 20px 0 10px 0; border-bottom: 2px solid #FFF0F3; padding-bottom: 10px; }
+        .tab { padding: 8px 15px; border-radius: 10px; font-size: 0.9rem; cursor: pointer; color: #FFB7C5; font-weight: bold; transition: 0.3s; }
+        .tab.active { background: #FF8E9D; color: white; }
+
+        .date-group { background: #FFF0F3; padding: 10px 15px; border-radius: 12px; margin: 15px 0 8px 0; font-size: 0.9rem; font-weight: bold; color: #FF758F; display: flex; justify-content: space-between; }
         .history-item { padding: 14px; border-bottom: 1px solid #FFF0F3; }
         .history-main { display: flex; justify-content: space-between; align-items: center; }
         .user-tag { font-size: 0.75rem; background: #FFE0E6; padding: 3px 8px; border-radius: 8px; color: #FF758F; margin-left: 6px; }
-        #totalDisplay { font-size: 1.5rem; text-align: center; margin: 25px 0; color: #FF8E9D; font-weight: bold; }
-        .action-btns { display: flex; gap: 15px; }
         .del-btn { color: #FFB3B3; font-size: 1.3rem; border: none; background: none; cursor: pointer; }
+        
+        #totalDisplay { font-size: 1.4rem; text-align: center; margin: 15px 0; color: #FF8E9D; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -50,27 +50,27 @@
 
     <div class="budget-section">
         <div class="budget-header">
-            <div class="budget-title">✨ 預算進度 <span onclick="setBudget()" style="cursor:pointer">⚙️</span></div>
-            <div id="percent-label">0%</div>
+            <span style="font-size:0.9rem; font-weight:bold; color:#FF758F;">✨ 預算進度 <span onclick="setBudget()" style="cursor:pointer">⚙️</span></span>
+            <span id="percent-label" style="font-size:0.85rem; font-weight:bold; color:#FF8E9D;">0%</span>
         </div>
         <div class="progress-container"><div id="progress-bar"></div></div>
-        <div id="budget-summary" style="font-size: 0.75rem; color: #FFB7C5; margin-top: 8px; text-align: right;">剩餘：$0 / $0</div>
+        <div id="budget-summary" style="font-size: 0.75rem; color: #FFB7C5; margin-top: 8px; text-align: right;">剩餘：$0</div>
     </div>
     
     <div class="user-selector">
         <div class="user-wrapper">
             <button class="user-btn active" id="btn1" onclick="selectUser(1)">--</button>
-            <span class="rename-link" onclick="renameUser(1)">✎ 改名</span>
+            <span style="font-size:0.7rem; text-align:center; color:#FFC1CC; cursor:pointer;" onclick="renameUser(1)">✎ 改名</span>
         </div>
         <div class="user-wrapper">
             <button class="user-btn" id="btn2" onclick="selectUser(2)">--</button>
-            <span class="rename-link" onclick="renameUser(2)">✎ 改名</span>
+            <span style="font-size:0.7rem; text-align:center; color:#FFC1CC; cursor:pointer;" onclick="renameUser(2)">✎ 改名</span>
         </div>
     </div>
 
     <input type="date" id="dateInput">
-    <input type="number" id="amountInput" placeholder="輸入金額..." inputmode="decimal">
-    <input type="text" id="noteInput" placeholder="備註 (想說的話)...">
+    <input type="number" id="amountInput" placeholder="金額" inputmode="decimal">
+    <input type="text" id="noteInput" placeholder="備註...">
     
     <div class="grid">
         <button class="btn-cat" onclick="save('食', '🍱')"><span class="emoji">🍱</span>食</button>
@@ -84,7 +84,13 @@
     </div>
 
     <div style="text-align:center;"><input type="month" id="monthPicker" style="width: auto;" onchange="renderData()"></div>
-    <div style="height: 180px;"><canvas id="myChart"></canvas></div>
+    
+    <div class="tab-container">
+        <div class="tab active" id="tab-all" onclick="setFilter('all')">全部</div>
+        <div class="tab" id="tab-u1" onclick="setFilter(1)">--</div>
+        <div class="tab" id="tab-u2" onclick="setFilter(2)">--</div>
+    </div>
+
     <div id="totalDisplay">月支出：$0</div>
     <div id="historyList"></div>
 </div>
@@ -101,7 +107,7 @@
     const db = firebase.database().ref('our_budget_v4');
     const settingsDb = firebase.database().ref('our_budget_settings');
 
-    let uName1 = "我", uName2 = "伴侶", activeUserIndex = 1;
+    let uName1 = "我", uName2 = "伴侶", activeUserIndex = 1, currentFilter = 'all';
     let cachedData = null, monthlyBudget = 20000;
 
     function renameUser(idx) {
@@ -116,6 +122,8 @@
         monthlyBudget = val.limit || 20000;
         document.getElementById('btn1').innerText = uName1;
         document.getElementById('btn2').innerText = uName2;
+        document.getElementById('tab-u1').innerText = uName1;
+        document.getElementById('tab-u2').innerText = uName2;
         renderData();
     });
 
@@ -125,25 +133,26 @@
         document.getElementById('btn2').classList.toggle('active', idx === 2);
     }
 
+    function setFilter(filter) {
+        currentFilter = filter;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        if (filter === 'all') document.getElementById('tab-all').classList.add('active');
+        else if (filter === 1) document.getElementById('tab-u1').classList.add('active');
+        else if (filter === 2) document.getElementById('tab-u2').classList.add('active');
+        renderData();
+    }
+
     const now = new Date();
     document.getElementById('dateInput').valueAsDate = now;
     document.getElementById('monthPicker').value = now.toISOString().slice(0, 7);
-
-    const chart = new Chart(document.getElementById('myChart'), {
-        type: 'doughnut',
-        data: { labels: ['食', '衣', '住', '行', '樂', '繳費', '超市', '網購'], datasets: [{ data: [0,0,0,0,0,0,0,0], backgroundColor: ['#FFADAD', '#FFD6A5', '#FDFFB6', '#CAFFBF', '#9BF6FF', '#A0C4FF', '#BDB2FF', '#FFC6FF'], borderWidth: 0 }] },
-        options: { maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false } } }
-    });
 
     function save(cat, emoji) {
         const amt = parseFloat(document.getElementById('amountInput').value);
         if (amt > 0) {
             db.push({ 
                 date: document.getElementById('dateInput').value, 
-                category: cat, amount: amt, 
-                userIndex: activeUserIndex, // 改儲存索引 1 或 2
-                ts: Date.now(), emoji: emoji, 
-                note: document.getElementById('noteInput').value.trim() 
+                category: cat, amount: amt, userIndex: activeUserIndex,
+                ts: Date.now(), emoji: emoji, note: document.getElementById('noteInput').value.trim() 
             });
             document.getElementById('amountInput').value = ''; 
             document.getElementById('noteInput').value = '';
@@ -155,40 +164,45 @@
         const month = document.getElementById('monthPicker').value;
         const list = document.getElementById('historyList');
         list.innerHTML = '';
-        let totals = { '食':0, '衣':0, '住':0, '行':0, '樂':0, '繳費':0, '超市':0, '網購':0 };
-        let grandTotal = 0, groups = {};
+        let grandTotal = 0, filteredTotal = 0, groups = {};
 
         Object.keys(cachedData).forEach(k => {
             const item = cachedData[k];
             if (item.date?.startsWith(month)) {
-                if (!groups[item.date]) groups[item.date] = [];
-                groups[item.date].push({ ...item, id: k });
-                if(totals.hasOwnProperty(item.category)) totals[item.category] += item.amount;
                 grandTotal += item.amount;
+                // 執行過濾邏輯
+                if (currentFilter === 'all' || item.userIndex === currentFilter) {
+                    filteredTotal += item.amount;
+                    if (!groups[item.date]) groups[item.date] = [];
+                    groups[item.date].push({ ...item, id: k });
+                }
             }
         });
 
-        // 預算邏輯
+        // 預算條（依據「總支出」計算）
         const percent = Math.min((grandTotal / monthlyBudget) * 100, 100).toFixed(1);
         document.getElementById('progress-bar').style.width = percent + '%';
         document.getElementById('percent-label').innerText = `${percent}%`;
-        document.getElementById('budget-summary').innerText = `剩餘：$${Math.max(monthlyBudget-grandTotal, 0).toLocaleString()} / $${monthlyBudget.toLocaleString()}`;
+        document.getElementById('budget-summary').innerText = `剩餘：$${Math.max(monthlyBudget-grandTotal, 0).toLocaleString()}`;
 
-        // 清單渲染
+        // 顯示過濾後的支出
+        const filterName = currentFilter === 'all' ? '月' : (currentFilter === 1 ? uName1 : uName2);
+        document.getElementById('totalDisplay').innerText = `${filterName}支出：$${filteredTotal.toLocaleString()}`;
+
         Object.keys(groups).sort((a, b) => new Date(b) - new Date(a)).forEach(date => {
             let dayHtml = '', dayTotal = 0;
             groups[date].sort((a,b)=>b.ts - a.ts).forEach(item => {
                 dayTotal += item.amount;
-                // 這裡最重要：根據 userIndex 動態讀取當前的 uName1 或 uName2
                 const displayName = item.userIndex === 2 ? uName2 : uName1;
-                dayHtml += `<div class="history-item"><div class="history-main"><span>${item.emoji} ${item.category} $${item.amount} <span class="user-tag">${displayName}</span></span><button class="del-btn" onclick="if(confirm('刪除？')) db.child('${item.id}').remove()">×</button></div>${item.note ? `<div class="history-note">💬 ${item.note}</div>` : ''}</div>`;
+                dayHtml += `<div class="history-item"><div class="history-main"><span>${item.emoji} ${item.category} $${item.amount} <span class="user-tag">${displayName}</span></span><button class="del-btn" onclick="if(confirm('刪除？')) db.child('${item.id}').remove()">×</button></div>${item.note ? `<div class="history-note" style="font-size:0.85rem; color:#A0A0A0; font-style:italic; margin-top:5px;">💬 ${item.note}</div>` : ''}</div>`;
             });
             list.innerHTML += `<div class="date-group"><span>📅 ${date.slice(5)}</span><span>$${dayTotal}</span></div>${dayHtml}`;
         });
+    }
 
-        chart.data.datasets[0].data = Object.values(totals);
-        chart.update();
-        document.getElementById('totalDisplay').innerText = `月支出：$${grandTotal.toLocaleString()}`;
+    function setBudget() {
+        const val = prompt("每月預算：", monthlyBudget);
+        if (val && !isNaN(val)) settingsDb.child('limit').set(parseFloat(val));
     }
 
     db.on('value', (snap) => { cachedData = snap.val(); renderData(); });
