@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>共同記帳 - PWA 完整版</title>
+    <title>共同記帳 - 日期分群版</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#36A2EB">
@@ -31,7 +31,11 @@
         .btn-cat:active { background: #ddd; transform: scale(0.95); }
         .emoji { font-size: 1.3rem; margin-bottom: 4px; }
 
-        .history-item { padding: 12px; border-bottom: 1px solid #f9f9f9; }
+        /* 新增：日期分群樣式 */
+        .date-group { background: #f8f9fa; padding: 6px 12px; border-radius: 8px; margin: 15px 0 8px 0; font-size: 0.85rem; font-weight: bold; color: #555; display: flex; justify-content: space-between; }
+        .day-total { color: #36A2EB; }
+
+        .history-item { padding: 12px; border-bottom: 1px solid #fcfcfc; }
         .history-main { display: flex; justify-content: space-between; align-items: center; }
         .history-note { font-size: 0.8rem; color: #888; margin-top: 4px; padding-left: 2px; }
         .user-tag { font-size: 0.7rem; background: #eee; padding: 2px 6px; border-radius: 4px; margin-left: 5px; color: #666; }
@@ -81,7 +85,6 @@
 </div>
 
 <script>
-    // 註冊 Service Worker 支援 PWA
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js');
     }
@@ -123,16 +126,7 @@
                 backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E74C3C', '#2ECC71', '#F39C12', '#34495E'] 
             }]
         },
-        options: { 
-            maintainAspectRatio: false, 
-            plugins: { 
-                legend: { 
-                    display: true,
-                    position: 'bottom',
-                    labels: { boxWidth: 10, font: { size: 10 } }
-                } 
-            } 
-        }
+        options: { maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
     });
 
     function save(cat, emoji) {
@@ -141,13 +135,9 @@
         const amt = parseFloat(amtInput.value);
         const date = document.getElementById('dateInput').value;
         const note = noteInput.value.trim();
-
         if (amt > 0) {
-            db.push({ 
-                date, category: cat, amount: amt, user: currentUser, ts: Date.now(), emoji: emoji, note: note
-            });
-            amtInput.value = '';
-            noteInput.value = '';
+            db.push({ date, category: cat, amount: amt, user: currentUser, ts: Date.now(), emoji: emoji, note: note });
+            amtInput.value = ''; noteInput.value = '';
         }
     }
 
@@ -155,20 +145,11 @@
         const item = cachedData[id];
         const newAmount = prompt("請輸入新的金額：", item.amount);
         if (newAmount === null) return;
-
         const parsedAmount = parseFloat(newAmount);
-        if (isNaN(parsedAmount) || parsedAmount <= 0) {
-            alert("請輸入有效的正數字");
-            return;
-        }
-
+        if (isNaN(parsedAmount) || parsedAmount <= 0) return alert("請輸入有效數字");
         const newNote = prompt("請輸入新的備註：", item.note || "");
         if (newNote === null) return;
-
-        db.child(id).update({
-            amount: parsedAmount,
-            note: newNote.trim()
-        });
+        db.child(id).update({ amount: parsedAmount, note: newNote.trim() });
     }
 
     function renderData() {
@@ -176,31 +157,54 @@
         const selectedMonth = document.getElementById('monthPicker').value;
         const list = document.getElementById('historyList');
         list.innerHTML = '';
+        
         let totals = { '食':0, '衣':0, '住':0, '行':0, '育':0, '樂':0, '繳費':0, '網購':0, '超市':0, '貸款':0 };
         let grandTotal = 0;
+        let groups = {}; // 用於日期分群
 
-        const keys = Object.keys(cachedData).sort((a,b) => cachedData[b].ts - cachedData[a].ts);
-        
-        keys.forEach(k => {
+        // 1. 過濾資料並按日期群組
+        Object.keys(cachedData).forEach(k => {
             const item = cachedData[k];
             if (item.date && item.date.startsWith(selectedMonth)) {
+                if (!groups[item.date]) groups[item.date] = [];
+                groups[item.date].push({ ...item, id: k });
                 if(totals.hasOwnProperty(item.category)) totals[item.category] += item.amount;
                 grandTotal += item.amount;
-                
+            }
+        });
+
+        // 2. 排序日期（從新到舊）
+        const sortedDates = Object.keys(groups).sort((a, b) => new Date(b) - new Date(a));
+
+        // 3. 渲染 HTML
+        sortedDates.forEach(date => {
+            let dayTotal = 0;
+            let dayHtml = '';
+            
+            // 排序當日明細（按時間戳降序）
+            groups[date].sort((a,b) => b.ts - a.ts).forEach(item => {
+                dayTotal += item.amount;
                 const displayNote = item.note ? `<div class="history-note">💬 ${item.note}</div>` : '';
-                
-                list.innerHTML += `
+                dayHtml += `
                     <div class="history-item">
                         <div class="history-main">
-                            <span>${item.date.slice(5)} ${item.emoji} $${item.amount} <span class="user-tag">${item.user}</span></span>
+                            <span>${item.emoji} ${item.category} $${item.amount} <span class="user-tag">${item.user}</span></span>
                             <div class="action-btns">
-                                <button class="edit-btn" onclick="editItem('${k}')">✏️</button>
-                                <button class="del-btn" onclick="if(confirm('要刪除嗎？')) db.child('${k}').remove()">×</button>
+                                <button class="edit-btn" onclick="editItem('${item.id}')">✏️</button>
+                                <button class="del-btn" onclick="if(confirm('要刪除嗎？')) db.child('${item.id}').remove()">×</button>
                             </div>
                         </div>
                         ${displayNote}
                     </div>`;
-            }
+            });
+
+            // 插入日期標題小計與該日明細
+            list.innerHTML += `
+                <div class="date-group">
+                    <span>📅 ${date.slice(5)}</span>
+                    <span class="day-total">日計: $${dayTotal}</span>
+                </div>
+                ${dayHtml}`;
         });
 
         chart.data.datasets[0].data = Object.values(totals);
@@ -208,10 +212,7 @@
         document.getElementById('totalDisplay').innerText = `該月總計：$${grandTotal.toLocaleString()}`;
     }
 
-    db.on('value', (snap) => {
-        cachedData = snap.val();
-        renderData();
-    });
+    db.on('value', (snap) => { cachedData = snap.val(); renderData(); });
 </script>
 
 </body>
