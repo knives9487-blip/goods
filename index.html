@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>共同記帳 - 功能全開版</title>
+    <title>共同記帳 - 簡潔圖表版</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -114,10 +114,9 @@
         options: { 
             maintainAspectRatio: false, 
             plugins: { 
+                // 此處已取消圖表說明
                 legend: { 
-                    display: true,
-                    position: 'bottom',
-                    labels: { boxWidth: 10, font: { size: 10 } }
+                    display: false 
                 } 
             } 
         }
