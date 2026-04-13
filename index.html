@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>共同記帳 - 穩定刷新版</title>
+    <title>我們的共同記帳本</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#36A2EB">
@@ -16,68 +16,28 @@
     
     <style>
         :root { --primary: #36A2EB; --bg: #f4f7f6; }
-        body { 
-            font-family: sans-serif; background: var(--bg); 
-            display: flex; justify-content: center; padding: 15px; margin: 0; 
-            overflow-x: hidden;
-        }
-        
-        /* 下拉刷新指示器樣式 */
-        #pull-to-refresh {
-            position: fixed; top: -60px; left: 0; right: 0;
-            height: 60px; display: flex; align-items: center; justify-content: center;
-            font-size: 0.9rem; color: var(--primary); font-weight: bold;
-            z-index: 1000; transition: transform 0.1s linear;
-        }
-        .spinner {
-            display: inline-block; width: 16px; height: 16px;
-            border: 2px solid rgba(54, 162, 235, 0.3);
-            border-radius: 50%; border-top-color: var(--primary);
-            animation: spin 1s linear infinite; margin-right: 8px;
-            display: none;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        body { font-family: sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 15px; margin: 0; }
+        .app-card { width: 100%; max-width: 500px; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
 
-        .app-card { 
-            width: 100%; max-width: 500px; background: white; 
-            padding: 20px; border-radius: 20px; 
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            position: relative; transition: transform 0.2s cubic-bezier(0,0,0.3,1);
-        }
-
+        /* 回復最原始的長方形文字按鈕 */
         .user-selector { display: flex; gap: 10px; margin-bottom: 15px; justify-content: center; }
-        .user-btn { flex: 1; padding: 12px; border: 2px solid #eee; border-radius: 20px; background: none; cursor: pointer; font-size: 0.9rem; transition: 0.2s; }
+        .user-btn { flex: 1; padding: 12px; border: 2px solid #eee; border-radius: 12px; background: none; cursor: pointer; font-size: 1rem; transition: 0.2s; }
         .user-btn.active { border-color: var(--primary); background: #eef7ff; font-weight: bold; color: var(--primary); }
         
-        .filter-section { background: #fdfdfd; padding: 12px; border-radius: 15px; border: 1px dashed #36A2EB; margin: 15px 0; text-align: center; }
-        .month-select { padding: 8px 15px; border-radius: 10px; border: 1px solid #36A2EB; font-size: 1rem; color: #36A2EB; font-weight: bold; }
-
         input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; margin-bottom: 10px; font-size: 1rem; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 8px; margin-bottom: 20px; }
-        .btn-cat { border: none; padding: 12px 2px; border-radius: 10px; background: #f0f0f0; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 0.8rem; }
-        .btn-cat:active { background: #ddd; transform: scale(0.95); }
-        .emoji { font-size: 1.3rem; margin-bottom: 4px; }
+        .btn-cat { border: none; padding: 12px 2px; border-radius: 10px; background: #f0f0f0; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 0.85rem; }
+        .emoji { font-size: 1.4rem; margin-bottom: 4px; }
 
         .date-group { background: #f8f9fa; padding: 6px 12px; border-radius: 8px; margin: 15px 0 8px 0; font-size: 0.85rem; font-weight: bold; color: #555; display: flex; justify-content: space-between; }
-        .day-total { color: #36A2EB; }
-
-        .history-item { padding: 12px; border-bottom: 1px solid #fcfcfc; }
-        .history-main { display: flex; justify-content: space-between; align-items: center; }
-        .history-note { font-size: 0.8rem; color: #888; margin-top: 4px; padding-left: 2px; }
+        .history-item { padding: 12px; border-bottom: 1px solid #fcfcfc; display: flex; justify-content: space-between; align-items: center; }
         .user-tag { font-size: 0.7rem; background: #eee; padding: 2px 6px; border-radius: 4px; margin-left: 5px; color: #666; }
-        .action-btns { display: flex; gap: 10px; }
-        .edit-btn { color: #36A2EB; border: none; background: none; cursor: pointer; font-size: 1.1rem; }
         .del-btn { color: #ff4d4d; border: none; background: none; cursor: pointer; font-size: 1.2rem; }
     </style>
 </head>
 <body>
 
-<div id="pull-to-refresh">
-    <div class="spinner" id="refresh-spinner"></div>
-    <span id="refresh-text">⬇️ 下拉以刷新</span>
-</div>
-
-<div class="app-card" id="app-content">
+<div class="app-card">
     <h2 style="text-align:center; margin-bottom:15px;">💑 共同記帳</h2>
     
     <div class="user-selector">
@@ -94,17 +54,8 @@
         <button class="btn-cat" onclick="save('衣', '👕')"><span class="emoji">👕</span>衣</button>
         <button class="btn-cat" onclick="save('住', '🏠')"><span class="emoji">🏠</span>住</button>
         <button class="btn-cat" onclick="save('行', '🚌')"><span class="emoji">🚌</span>行</button>
-        <button class="btn-cat" onclick="save('育', '📖')"><span class="emoji">📖</span>育</button>
         <button class="btn-cat" onclick="save('樂', '🎮')"><span class="emoji">🎮</span>樂</button>
-        <button class="btn-cat" onclick="save('繳費', '🧧')"><span class="emoji">🧧</span>繳費</button>
         <button class="btn-cat" onclick="save('網購', '🛒')"><span class="emoji">🛒</span>網購</button>
-        <button class="btn-cat" onclick="save('超市', '🏢')"><span class="emoji">🏢</span>超市</button>
-        <button class="btn-cat" onclick="save('貸款', '🏦')"><span class="emoji">🏦</span>貸款</button>
-    </div>
-
-    <div class="filter-section">
-        <label style="font-size: 0.85rem; color: #666;">📅 查看月份：</label>
-        <input type="month" id="monthPicker" class="month-select" onchange="renderData()">
     </div>
 
     <div style="height: 220px;"><canvas id="myChart"></canvas></div>
@@ -113,13 +64,29 @@
 </div>
 
 <script>
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
-
     const firebaseConfig = {
         apiKey: "AIzaSyAKP1RNsdH6PzkpG5s_cJKvYiqWw4ogTxM",
         authDomain: "news-7faa3.firebaseapp.com",
         projectId: "news-7faa3",
         storageBucket: "news-7faa3.firebasestorage.app",
-        messagingSenderId: "44090602845",
-        appId: "1:44090602845:web:a8878ca2d763ac37ffa4b4",
-        measurementId: "G-Y
+        databaseURL: "https://news-7faa3-default-rtdb.firebaseio.com/" 
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database().ref('our_budget_v4');
+
+    let currentUser = "我";
+    let cachedData = null;
+
+    function setUser(u) {
+        currentUser = u;
+        document.getElementById('btn1').classList.toggle('active', u === '我');
+        document.getElementById('btn2').classList.toggle('active', u === '伴侶');
+    }
+
+    document.getElementById('dateInput').valueAsDate = new Date();
+
+    const ctx = document.getElementById('myChart').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['食', '衣', '住', '行', '樂', '網
