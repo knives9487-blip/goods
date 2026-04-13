@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>共同記帳 - 明細修改版</title>
+    <title>共同記帳 - 簡潔圖表版</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -66,6 +66,7 @@
     </div>
 
     <div style="height: 220px;"><canvas id="myChart"></canvas></div>
+    
     <h3 id="totalDisplay" style="text-align:center; color:#333; margin: 20px 0;">該月總計：$0</h3>
 
     <div style="font-weight:bold; margin-bottom:10px;">📋 該月明細</div>
@@ -110,7 +111,15 @@
                 backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E74C3C', '#2ECC71', '#F39C12', '#34495E'] 
             }]
         },
-        options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
+        options: { 
+            maintainAspectRatio: false, 
+            plugins: { 
+                // 核心修改點：隱藏圖例
+                legend: { 
+                    display: false 
+                } 
+            } 
+        }
     });
 
     function save(cat, emoji) {
@@ -129,11 +138,10 @@
         }
     }
 
-    // 新增：修改功能
     function editItem(id) {
         const item = cachedData[id];
         const newAmount = prompt("請輸入新的金額：", item.amount);
-        if (newAmount === null) return; // 使用者按取消
+        if (newAmount === null) return;
 
         const parsedAmount = parseFloat(newAmount);
         if (isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -166,32 +174,4 @@
                 if(totals.hasOwnProperty(item.category)) totals[item.category] += item.amount;
                 grandTotal += item.amount;
                 
-                const displayNote = item.note ? `<div class="history-note">💬 ${item.note}</div>` : '';
-                
-                list.innerHTML += `
-                    <div class="history-item">
-                        <div class="history-main">
-                            <span>${item.date.slice(5)} ${item.emoji} $${item.amount} <span class="user-tag">${item.user}</span></span>
-                            <div class="action-btns">
-                                <button class="edit-btn" onclick="editItem('${k}')">✏️</button>
-                                <button class="del-btn" onclick="if(confirm('要刪除嗎？')) db.child('${k}').remove()">×</button>
-                            </div>
-                        </div>
-                        ${displayNote}
-                    </div>`;
-            }
-        });
-
-        chart.data.datasets[0].data = Object.values(totals);
-        chart.update();
-        document.getElementById('totalDisplay').innerText = `該月總計：$${grandTotal.toLocaleString()}`;
-    }
-
-    db.on('value', (snap) => {
-        cachedData = snap.val();
-        renderData();
-    });
-</script>
-
-</body>
-</html>
+                const displayNote = item.note ? `<div class="
