@@ -14,18 +14,13 @@
         body { font-family: sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 0; margin: 0; color: #5D5D5D; overflow-x: hidden; }
         
         /* 下拉刷新樣式 */
-        #ptr-element { 
-            position: absolute; top: -60px; left: 0; width: 100%; height: 60px; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 1.5rem; transition: transform 0.2s; z-index: 10;
-        }
+        #ptr-element { position: absolute; top: -60px; left: 0; width: 100%; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; transition: transform 0.2s; z-index: 10; }
         .refreshing #ptr-element { transform: translateY(60px); }
         .ptr-icon { transition: transform 0.2s; color: var(--secondary); }
         
         #main-content { transition: transform 0.3s cubic-bezier(0,0,0.31,1); width: 100%; max-width: 500px; }
         .app-card { background: white; padding: 20px; border-radius: 0 0 25px 25px; box-shadow: 0 10px 30px rgba(255, 183, 197, 0.2); min-height: 100vh; box-sizing: border-box; }
         
-        /* 預算與 UI 樣式 */
         .budget-section { margin-bottom: 20px; background: #FFF9FA; border: 1.5px solid #FFE0E6; padding: 15px; border-radius: 20px; }
         .budget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .progress-container { width: 100%; height: 14px; background: #F0F0F0; border-radius: 10px; overflow: hidden; }
@@ -38,6 +33,11 @@
         .user-btn.active { border-color: var(--secondary); background: #FF8E9D; color: white; }
         
         input { width: 100%; padding: 12px; border: 1.5px solid #FFE0E6; border-radius: 15px; box-sizing: border-box; margin-bottom: 10px; font-size: 1rem; outline: none; }
+        
+        /* 搜尋框專屬樣式 */
+        #searchInput { background-color: #FFF; border-color: #FFB7C5; border-width: 2px; }
+        #searchInput::placeholder { color: #FFB7C5; }
+
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
         .btn-cat { border: none; padding: 12px 2px; border-radius: 18px; background: #FFF0F3; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 0.85rem; color: #FF758F; }
         .emoji { font-size: 1.5rem; margin-bottom: 5px; }
@@ -55,8 +55,6 @@
         .del-btn { color: #FFB3B3; font-size: 1.4rem; border: none; background: none; cursor: pointer; }
         
         #totalDisplay { font-size: 1.4rem; text-align: center; margin: 15px 0; color: #FF8E9D; font-weight: bold; }
-        
-        /* 旋轉動畫 */
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .spinning { animation: spin 1s linear infinite; }
     </style>
@@ -107,7 +105,13 @@
             <button class="btn-cat" onclick="save('網購', '🛒')"><span class="emoji">🛒</span>網購</button>
         </div>
 
-        <div style="text-align:center;"><input type="month" id="monthPicker" style="width: auto;" onchange="renderData()"></div>
+        <hr style="border: 0; border-top: 1px solid #FFE0E6; margin: 20px 0;">
+        
+        <div style="text-align:center;">
+            <input type="month" id="monthPicker" style="width: auto;" onchange="renderData()">
+            <input type="text" id="searchInput" placeholder="🔍 搜尋備註、分類或金額..." oninput="renderData()">
+        </div>
+
         <div class="chart-container"><canvas id="myChart"></canvas></div>
 
         <div class="tab-container">
@@ -122,7 +126,6 @@
 </div>
 
 <script>
-    // --- Firebase 配置 ---
     const firebaseConfig = {
         apiKey: "AIzaSyAKP1RNsdH6PzkpG5s_cJKvYiqWw4ogTxM",
         authDomain: "news-7faa3.firebaseapp.com",
@@ -137,49 +140,31 @@
     let uName1 = "我", uName2 = "伴侶", activeUserIndex = 1, currentFilter = 'all';
     let cachedData = null, monthlyBudget = 20000, myChart = null;
 
-    // --- 下拉刷新邏輯 ---
+    // --- 下拉刷新 ---
     let startY = 0;
     const content = document.getElementById('main-content');
     const ptrIcon = document.getElementById('ptr-icon');
-
-    window.addEventListener('touchstart', (e) => {
-        if (window.scrollY === 0) startY = e.touches[0].pageY;
-    }, {passive: true});
-
+    window.addEventListener('touchstart', (e) => { if (window.scrollY === 0) startY = e.touches[0].pageY; }, {passive: true});
     window.addEventListener('touchmove', (e) => {
-        const moveY = e.touches[0].pageY;
-        const diff = moveY - startY;
+        const diff = e.touches[0].pageY - startY;
         if (window.scrollY === 0 && diff > 0) {
-            const pullDistance = Math.min(diff / 2, 80);
-            content.style.transform = `translateY(${pullDistance}px)`;
-            ptrIcon.style.transform = `rotate(${pullDistance * 5}deg)`;
-            if (diff > 150) ptrIcon.innerText = "✨"; else ptrIcon.innerText = "🌸";
+            const pull = Math.min(diff / 2, 80);
+            content.style.transform = `translateY(${pull}px)`;
+            ptrIcon.style.transform = `rotate(${pull * 5}deg)`;
         }
     }, {passive: true});
-
     window.addEventListener('touchend', (e) => {
         const diff = e.changedTouches[0].pageY - startY;
         if (window.scrollY === 0 && diff > 150) {
             content.style.transform = `translateY(60px)`;
-            ptrIcon.classList.add('spinning');
-            ptrIcon.innerText = "⏳";
-            
-            // 模擬刷新數據
+            ptrIcon.classList.add('spinning'); ptrIcon.innerText = "⏳";
             db.once('value', (snap) => {
-                cachedData = snap.val();
-                renderData();
-                setTimeout(() => {
-                    content.style.transform = `translateY(0)`;
-                    ptrIcon.classList.remove('spinning');
-                    ptrIcon.innerText = "🌸";
-                }, 600);
+                cachedData = snap.val(); renderData();
+                setTimeout(() => { content.style.transform = `translateY(0)`; ptrIcon.classList.remove('spinning'); ptrIcon.innerText = "🌸"; }, 600);
             });
-        } else {
-            content.style.transform = `translateY(0)`;
-        }
+        } else content.style.transform = `translateY(0)`;
     });
 
-    // --- 核心邏輯 (圖表、存檔、編輯等) ---
     function initChart() {
         const ctx = document.getElementById('myChart').getContext('2d');
         myChart = new Chart(ctx, {
@@ -199,10 +184,8 @@
         const val = snap.val() || {};
         uName1 = val.user1 || "我"; uName2 = val.user2 || "伴侶";
         monthlyBudget = val.limit || 20000;
-        document.getElementById('btn1').innerText = uName1;
-        document.getElementById('btn2').innerText = uName2;
-        document.getElementById('tab-u1').innerText = uName1;
-        document.getElementById('tab-u2').innerText = uName2;
+        document.getElementById('btn1').innerText = uName1; document.getElementById('btn2').innerText = uName2;
+        document.getElementById('tab-u1').innerText = uName1; document.getElementById('tab-u2').innerText = uName2;
         renderData();
     });
 
@@ -229,33 +212,23 @@
                 category: cat, amount: amt, userIndex: activeUserIndex,
                 ts: Date.now(), emoji: emoji, note: document.getElementById('noteInput').value.trim() 
             });
-            document.getElementById('amountInput').value = ''; 
-            document.getElementById('noteInput').value = '';
+            document.getElementById('amountInput').value = ''; document.getElementById('noteInput').value = '';
         }
     }
 
     function editItem(id) {
-        const item = cachedData[id];
-        if (!item) return;
-        const nAmt = prompt("金額：", item.amount);
-        if (nAmt === null) return;
-        const nCat = prompt("分類(食,衣,住,行,樂,繳費,超市,網購)：", item.category);
-        if (nCat === null) return;
-        const nNote = prompt("備註：", item.note || "");
-        if (nNote === null) return;
-
+        const item = cachedData[id]; if (!item) return;
+        const nAmt = prompt("金額：", item.amount); if (nAmt === null) return;
+        const nCat = prompt("分類(食,衣,住,行,樂,繳費,超市,網購)：", item.category); if (nCat === null) return;
+        const nNote = prompt("備註：", item.note || ""); if (nNote === null) return;
         const emojiMap = { '食':'🍱','衣':'👕','住':'🏠','行':'🚌','樂':'🎮','繳費':'🧧','超市':'🏢','網購':'🛒' };
-        db.child(id).update({
-            amount: parseFloat(nAmt) || item.amount,
-            category: nCat || item.category,
-            note: nNote.trim(),
-            emoji: emojiMap[nCat] || item.emoji
-        });
+        db.child(id).update({ amount: parseFloat(nAmt) || item.amount, category: nCat || item.category, note: nNote.trim(), emoji: emojiMap[nCat] || item.emoji });
     }
 
     function renderData() {
         if (!cachedData) return;
         const month = document.getElementById('monthPicker').value;
+        const searchKey = document.getElementById('searchInput').value.toLowerCase();
         const list = document.getElementById('historyList');
         list.innerHTML = '';
         let gt = 0, ft = 0, groups = {};
@@ -264,17 +237,25 @@
         Object.keys(cachedData).forEach(k => {
             const item = cachedData[k];
             if (item.date?.startsWith(month)) {
-                gt += item.amount;
-                let isMatch = (currentFilter === 'all');
-                if (!isMatch) {
-                    if (item.userIndex !== undefined) isMatch = (item.userIndex === currentFilter);
-                    else if (item.user) isMatch = (item.user === (currentFilter === 1 ? uName1 : uName2));
-                }
-                if (isMatch) {
-                    ft += item.amount;
-                    if (cats.hasOwnProperty(item.category)) cats[item.category] += item.amount;
-                    if (!groups[item.date]) groups[item.date] = [];
-                    groups[item.date].push({ ...item, id: k });
+                // 搜尋邏輯
+                const matchesSearch = !searchKey || 
+                    (item.category || "").toLowerCase().includes(searchKey) || 
+                    (item.note || "").toLowerCase().includes(searchKey) || 
+                    (item.amount || "").toString().includes(searchKey);
+
+                if (matchesSearch) {
+                    gt += item.amount;
+                    let isMatch = (currentFilter === 'all');
+                    if (!isMatch) {
+                        if (item.userIndex !== undefined) isMatch = (item.userIndex === currentFilter);
+                        else if (item.user) isMatch = (item.user === (currentFilter === 1 ? uName1 : uName2));
+                    }
+                    if (isMatch) {
+                        ft += item.amount;
+                        if (cats.hasOwnProperty(item.category)) cats[item.category] += item.amount;
+                        if (!groups[item.date]) groups[item.date] = [];
+                        groups[item.date].push({ ...item, id: k });
+                    }
                 }
             }
         });
@@ -286,7 +267,6 @@
         const lbl = document.getElementById('percent-label');
         bar.style.width = Math.min(p, 100) + '%';
         lbl.innerText = p.toFixed(1) + '%';
-        
         document.getElementById('used-display').innerText = `已用: $${gt.toLocaleString()}`;
         document.getElementById('remain-display').innerText = `剩餘: $${Math.max(0, monthlyBudget - gt).toLocaleString()}`;
 
@@ -302,31 +282,14 @@
                 dTotal += i.amount;
                 let dN = (i.userIndex === 2) ? uName2 : uName1;
                 if (i.userIndex === undefined && i.user) dN = i.user;
-                dHtml += `<div class="history-item">
-                    <div class="history-main">
-                        <span>${i.emoji} ${i.category} <b>$${i.amount}</b> <span class="user-tag">${dN}</span></span>
-                        <div class="action-btns">
-                            <button class="edit-btn" onclick="editItem('${i.id}')">✎</button>
-                            <button class="del-btn" onclick="if(confirm('刪除？')) db.child('${i.id}').remove()">×</button>
-                        </div>
-                    </div>
-                    ${i.note?`<div style="font-size:0.8rem;color:#999;margin-top:5px;">💬 ${i.note}</div>`:''}
-                </div>`;
+                dHtml += `<div class="history-item"><div class="history-main"><span>${i.emoji} ${i.category} <b>$${i.amount}</b> <span class="user-tag">${dN}</span></span><div class="action-btns"><button class="edit-btn" onclick="editItem('${i.id}')">✎</button><button class="del-btn" onclick="if(confirm('刪除？')) db.child('${i.id}').remove()">×</button></div></div>${i.note?`<div style="font-size:0.8rem;color:#999;margin-top:5px;">💬 ${i.note}</div>`:''}</div>`;
             });
             list.innerHTML += `<div class="date-group"><span>📅 ${date.slice(5)}</span><span>$${dTotal}</span></div>${dHtml}`;
         });
     }
 
-    function setBudget() {
-        const v = prompt("每月預算：", monthlyBudget);
-        if (v && !isNaN(v)) settingsDb.child('limit').set(parseFloat(v));
-    }
-
-    function renameUser(idx) {
-        const n = prompt("名稱：", idx === 1 ? uName1 : uName2);
-        if (n?.trim()) settingsDb.child(`user${idx}`).set(n.trim().substring(0, 8));
-    }
-
+    function setBudget() { const v = prompt("每月預算：", monthlyBudget); if (v && !isNaN(v)) settingsDb.child('limit').set(parseFloat(v)); }
+    function renameUser(idx) { const n = prompt("名稱：", idx === 1 ? uName1 : uName2); if (n?.trim()) settingsDb.child(`user${idx}`).set(n.trim().substring(0, 8)); }
     const today = new Date();
     document.getElementById('dateInput').valueAsDate = today;
     document.getElementById('monthPicker').value = today.toISOString().slice(0, 7);
