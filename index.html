@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>共同記帳 - 預算控管版</title>
+    <title>共同記帳 - 預算自訂版</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#36A2EB">
@@ -18,56 +18,67 @@
         :root { --primary: #36A2EB; --bg: #f4f7f6; --safe: #36A2EB; --warning: #ff9f40; --danger: #ff4d4d; }
         body { font-family: sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 15px; margin: 0; overflow-x: hidden; }
         
-        #pull-to-refresh { position: fixed; top: -60px; left: 0; right: 0; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; color: var(--primary); font-weight: bold; z-index: 1000; transition: transform 0.1s linear; }
-        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(54, 162, 235, 0.3); border-radius: 50%; border-top-color: var(--primary); animation: spin 1s linear infinite; margin-right: 8px; display: none; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        /* App 卡片容器 */
+        .app-card { width: 100%; max-width: 500px; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); position: relative; }
 
-        .app-card { width: 100%; max-width: 500px; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); position: relative; transition: transform 0.2s cubic-bezier(0,0,0.3,1); }
-
-        /* --- 預算進度條樣式 --- */
-        .budget-section { margin-bottom: 20px; cursor: pointer; }
-        .budget-info { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 5px; color: #666; font-weight: bold; }
-        .progress-container { width: 100%; height: 12px; background: #eee; border-radius: 10px; overflow: hidden; }
-        #progress-bar { width: 0%; height: 100%; background: var(--safe); transition: width 0.5s ease, background-color 0.5s ease; }
+        /* --- 預算區塊優化 --- */
+        .budget-section { 
+            margin-bottom: 20px; background: #fff; border: 1px solid #eee; padding: 15px; border-radius: 15px; 
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .budget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .budget-title { font-size: 0.9rem; font-weight: bold; color: #444; display: flex; align-items: center; gap: 5px; }
+        .setting-icon { cursor: pointer; color: #aaa; font-size: 1rem; transition: 0.2s; }
+        .setting-icon:hover { color: var(--primary); }
+        
+        .budget-value { font-size: 0.8rem; color: #888; }
+        .progress-container { width: 100%; height: 14px; background: #eee; border-radius: 10px; overflow: hidden; }
+        #progress-bar { width: 0%; height: 100%; background: var(--safe); transition: width 0.6s cubic-bezier(0.1, 0.7, 0.1, 1); }
         /* ----------------------- */
 
-        .user-selector { display: flex; gap: 10px; margin-bottom: 15px; justify-content: center; }
-        .user-btn { flex: 1; padding: 10px; border: 2px solid #eee; border-radius: 20px; background: none; cursor: pointer; font-size: 0.9rem; transition: 0.2s; }
+        .user-selector { display: flex; gap: 10px; margin-bottom: 15px; }
+        .user-btn { flex: 1; padding: 12px; border: 2px solid #eee; border-radius: 15px; background: none; cursor: pointer; font-size: 0.9rem; }
         .user-btn.active { border-color: var(--primary); background: #eef7ff; font-weight: bold; color: var(--primary); }
         
-        .filter-section { background: #fdfdfd; padding: 12px; border-radius: 15px; border: 1px dashed #36A2EB; margin: 15px 0; text-align: center; }
-        .month-select { padding: 8px 15px; border-radius: 10px; border: 1px solid #36A2EB; font-size: 1rem; color: #36A2EB; font-weight: bold; }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box; margin-bottom: 10px; font-size: 1rem; outline: none; }
+        input:focus { border-color: var(--primary); }
 
-        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; margin-bottom: 10px; font-size: 1rem; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 8px; margin-bottom: 20px; }
-        .btn-cat { border: none; padding: 12px 2px; border-radius: 10px; background: #f0f0f0; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 0.8rem; }
-        .emoji { font-size: 1.3rem; margin-bottom: 4px; }
+        .btn-cat { border: none; padding: 12px 2px; border-radius: 12px; background: #f5f5f5; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 0.8rem; }
+        .btn-cat:active { transform: scale(0.95); background: #eee; }
+        .emoji { font-size: 1.4rem; margin-bottom: 4px; }
 
-        .date-group { background: #f8f9fa; padding: 6px 12px; border-radius: 8px; margin: 15px 0 8px 0; font-size: 0.85rem; font-weight: bold; color: #555; display: flex; justify-content: space-between; }
-        .day-total { color: #36A2EB; }
-        .history-item { padding: 12px; border-bottom: 1px solid #fcfcfc; }
+        .filter-section { margin-bottom: 15px; text-align: center; }
+        .month-select { padding: 8px 12px; border-radius: 10px; border: 1px solid #ddd; font-weight: bold; color: var(--primary); background: white; cursor: pointer; }
+
+        .date-group { background: #f8f9fa; padding: 8px 12px; border-radius: 10px; margin: 15px 0 8px 0; font-size: 0.85rem; font-weight: bold; display: flex; justify-content: space-between; }
+        .history-item { padding: 12px; border-bottom: 1px solid #f9f9f9; }
         .history-main { display: flex; justify-content: space-between; align-items: center; }
-        .user-tag { font-size: 0.7rem; background: #eee; padding: 2px 6px; border-radius: 4px; margin-left: 5px; color: #666; }
+        .history-note { font-size: 0.8rem; color: #999; margin-top: 5px; padding-left: 2px; }
+        .user-tag { font-size: 0.7rem; background: #eef7ff; padding: 2px 6px; border-radius: 5px; color: var(--primary); margin-left: 5px; }
+        .action-btns { display: flex; gap: 12px; }
+        .edit-btn { color: var(--primary); border: none; background: none; cursor: pointer; font-size: 1rem; }
         .del-btn { color: #ff4d4d; border: none; background: none; cursor: pointer; font-size: 1.2rem; }
     </style>
 </head>
 <body>
 
-<div id="pull-to-refresh">
-    <div class="spinner" id="refresh-spinner"></div>
-    <span id="refresh-text">⬇️ 下拉以刷新</span>
-</div>
+<div class="app-card">
+    <h2 style="text-align:center; margin-bottom:20px; color: #333;">💑 我們的帳本</h2>
 
-<div class="app-card" id="app-content">
-    <h2 style="text-align:center; margin-bottom:15px;">💑 共同記帳</h2>
-
-    <div class="budget-section" onclick="setBudget()">
-        <div class="budget-info">
-            <span id="budget-label">本月預算：$0</span>
-            <span id="percent-label">0%</span>
+    <div class="budget-section">
+        <div class="budget-header">
+            <div class="budget-title">
+                📊 本月預算進度 
+                <span class="setting-icon" onclick="setBudget()" title="設定預算">⚙️</span>
+            </div>
+            <div class="budget-value" id="percent-label">0%</div>
         </div>
         <div class="progress-container">
             <div id="progress-bar"></div>
+        </div>
+        <div id="budget-summary" style="font-size: 0.75rem; color: #999; margin-top: 8px; text-align: right;">
+            剩餘額度：$0 / 總預算：$0
         </div>
     </div>
     
@@ -78,17 +89,17 @@
 
     <input type="date" id="dateInput">
     <input type="number" id="amountInput" placeholder="輸入金額..." inputmode="decimal">
-    <input type="text" id="noteInput" placeholder="備註 (選填)...">
+    <input type="text" id="noteInput" placeholder="備註內容 (選填)...">
     
     <div class="grid">
         <button class="btn-cat" onclick="save('食', '🍱')"><span class="emoji">🍱</span>食</button>
         <button class="btn-cat" onclick="save('衣', '👕')"><span class="emoji">👕</span>衣</button>
         <button class="btn-cat" onclick="save('住', '🏠')"><span class="emoji">🏠</span>住</button>
         <button class="btn-cat" onclick="save('行', '🚌')"><span class="emoji">🚌</span>行</button>
-        <button class="btn-cat" onclick="save('育', '📖')"><span class="emoji">📖</span>育</button>
         <button class="btn-cat" onclick="save('樂', '🎮')"><span class="emoji">🎮</span>樂</button>
+        <button class="btn-cat" onclick="save('超市', '🛒')"><span class="emoji">🛒</span>超市</button>
         <button class="btn-cat" onclick="save('繳費', '🧧')"><span class="emoji">🧧</span>繳費</button>
-        <button class="btn-cat" onclick="save('網購', '🛒')"><span class="emoji">🛒</span>網購</button>
+        <button class="btn-cat" onclick="save('其他', '✨')"><span class="emoji">✨</span>其他</button>
     </div>
 
     <div class="filter-section">
@@ -96,12 +107,12 @@
     </div>
 
     <div style="height: 180px;"><canvas id="myChart"></canvas></div>
-    <h3 id="totalDisplay" style="text-align:center; color:#333;">該月總計：$0</h3>
+    <h3 id="totalDisplay" style="text-align:center; color:#333; margin: 20px 0;">月支出：$0</h3>
     <div id="historyList"></div>
 </div>
 
 <script>
-    // --- Firebase 配置 ---
+    // Firebase 配置
     const firebaseConfig = {
         apiKey: "AIzaSyAKP1RNsdH6PzkpG5s_cJKvYiqWw4ogTxM",
         authDomain: "news-7faa3.firebaseapp.com",
@@ -111,22 +122,20 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database().ref('our_budget_v4');
-    const budgetDb = firebase.database().ref('our_budget_settings'); // 存放預算
+    const settingsDb = firebase.database().ref('our_budget_settings');
 
-    let currentUser = "我";
-    let cachedData = null;
-    let monthlyBudget = 20000; // 預設 2 萬
+    let currentUser = "我", cachedData = null, monthlyBudget = 20000;
 
-    // 設定預算功能
+    // 設定預算函式
     function setBudget() {
-        const val = prompt("請輸入本月預算金額：", monthlyBudget);
+        const val = prompt("請設定每月的預算上限：", monthlyBudget);
         if (val !== null && !isNaN(val) && val > 0) {
-            budgetDb.child('monthlyLimit').set(parseFloat(val));
+            settingsDb.child('limit').set(parseFloat(val));
         }
     }
 
-    // 監聽預算變化
-    budgetDb.child('monthlyLimit').on('value', (snap) => {
+    // 監聽雲端預算設定
+    settingsDb.child('limit').on('value', (snap) => {
         monthlyBudget = snap.val() || 20000;
         renderData();
     });
@@ -137,18 +146,16 @@
         document.getElementById('btn2').classList.toggle('active', u === '伴侶');
     }
 
-    // 初始化日期
     const now = new Date();
     document.getElementById('dateInput').valueAsDate = now;
     document.getElementById('monthPicker').value = now.toISOString().slice(0, 7);
 
-    // 圖表
     const ctx = document.getElementById('myChart').getContext('2d');
     const chart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['食', '衣', '住', '行', '育', '樂', '繳費', '網購'],
-            datasets: [{ data: [0,0,0,0,0,0,0,0], backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E74C3C', '#2ECC71'] }]
+            labels: ['食', '衣', '住', '行', '樂', '超市', '繳費', '其他'],
+            datasets: [{ data: [0,0,0,0,0,0,0,0], backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E74C3C', '#BDC3C7'] }]
         },
         options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
     });
@@ -167,14 +174,22 @@
         }
     }
 
+    function editItem(id) {
+        const item = cachedData[id];
+        const newAmt = prompt("修改金額：", item.amount);
+        if (newAmt !== null && !isNaN(newAmt)) {
+            const newNote = prompt("修改備註：", item.note || "");
+            if (newNote !== null) db.child(id).update({ amount: parseFloat(newAmt), note: newNote.trim() });
+        }
+    }
+
     function renderData() {
         if (!cachedData) return;
         const selectedMonth = document.getElementById('monthPicker').value;
         const list = document.getElementById('historyList');
         list.innerHTML = '';
-        let totals = { '食':0, '衣':0, '住':0, '行':0, '育':0, '樂':0, '繳費':0, '網購':0 };
-        let grandTotal = 0;
-        let groups = {};
+        let totals = { '食':0, '衣':0, '住':0, '行':0, '樂':0, '超市':0, '繳費':0, '其他':0 };
+        let grandTotal = 0, groups = {};
 
         Object.keys(cachedData).forEach(k => {
             const item = cachedData[k];
@@ -186,49 +201,33 @@
             }
         });
 
-        // --- 更新進度條 ---
+        // 進度條與餘額計算
         const percent = Math.min((grandTotal / monthlyBudget) * 100, 100).toFixed(1);
+        const remaining = Math.max(monthlyBudget - grandTotal, 0);
         const bar = document.getElementById('progress-bar');
         bar.style.width = percent + '%';
-        document.getElementById('budget-label').innerText = `本月預算：$${monthlyBudget.toLocaleString()}`;
-        document.getElementById('percent-label').innerText = `${percent}% ($${grandTotal.toLocaleString()})`;
+        bar.style.backgroundColor = percent < 50 ? '#36A2EB' : (percent < 85 ? '#ff9f40' : '#ff4d4d');
         
-        // 顏色邏輯：藍 -> 橘 -> 紅
-        if (percent < 50) bar.style.backgroundColor = '#36A2EB';
-        else if (percent < 80) bar.style.backgroundColor = '#ff9f40';
-        else bar.style.backgroundColor = '#ff4d4d';
+        document.getElementById('percent-label').innerText = `${percent}%`;
+        document.getElementById('budget-summary').innerText = `剩餘：$${remaining.toLocaleString()} / 總預算：$${monthlyBudget.toLocaleString()}`;
 
-        // 渲染明細 (排序)
+        // 明細列表
         Object.keys(groups).sort((a, b) => new Date(b) - new Date(a)).forEach(date => {
-            let dayHtml = '';
-            groups[date].forEach(item => {
-                dayHtml += `<div class="history-item"><div class="history-main"><span>${item.emoji} ${item.category} $${item.amount} <span class="user-tag">${item.user}</span></span><button class="del-btn" onclick="db.child('${item.id}').remove()">×</button></div></div>`;
+            let dayHtml = '', dayTotal = 0;
+            groups[date].sort((a,b)=>b.ts - a.ts).forEach(item => {
+                dayTotal += item.amount;
+                const noteHtml = item.note ? `<div class="history-note">💬 ${item.note}</div>` : '';
+                dayHtml += `<div class="history-item"><div class="history-main"><span>${item.emoji} ${item.category} $${item.amount} <span class="user-tag">${item.user}</span></span><div class="action-btns"><button class="edit-btn" onclick="editItem('${item.id}')">✏️</button><button class="del-btn" onclick="if(confirm('要刪除嗎？')) db.child('${item.id}').remove()">×</button></div></div>${noteHtml}</div>`;
             });
-            list.innerHTML += `<div class="date-group">📅 ${date.slice(5)}</div>${dayHtml}`;
+            list.innerHTML += `<div class="date-group"><span>📅 ${date.slice(5)}</span><span>日計: $${dayTotal}</span></div>${dayHtml}`;
         });
 
         chart.data.datasets[0].data = Object.values(totals);
         chart.update();
-        document.getElementById('totalDisplay').innerText = `該月總計：$${grandTotal.toLocaleString()}`;
+        document.getElementById('totalDisplay').innerText = `月支出：$${grandTotal.toLocaleString()}`;
     }
 
     db.on('value', (snap) => { cachedData = snap.val(); renderData(); });
-
-    // 下拉刷新邏輯 (略縮，功能同前版本)
-    let touchStart = 0;
-    window.addEventListener('touchstart', (e) => { if (window.scrollY === 0) touchStart = e.touches[0].pageY; }, {passive: true});
-    window.addEventListener('touchmove', (e) => {
-        const diff = e.touches[0].pageY - touchStart;
-        if (diff > 0 && diff < 100 && window.scrollY === 0) {
-            document.getElementById('app-content').style.transform = `translateY(${diff}px)`;
-            document.getElementById('pull-to-refresh').style.transform = `translateY(${diff}px)`;
-        }
-    }, {passive: true});
-    window.addEventListener('touchend', () => {
-        document.getElementById('app-content').style.transform = '';
-        document.getElementById('pull-to-refresh').style.transform = '';
-        renderData();
-    });
 </script>
 </body>
 </html>
