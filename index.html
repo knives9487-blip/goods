@@ -46,7 +46,11 @@
         .tab { padding: 8px 15px; border-radius: 10px; font-size: 0.9rem; cursor: pointer; color: #FFB7C5; font-weight: bold; }
         .tab.active { background: #FF8E9D; color: white; }
 
-        .date-group { background: #FFF0F3; padding: 10px 15px; border-radius: 12px; margin: 15px 0 8px 0; font-size: 0.9rem; font-weight: bold; color: #FF758F; display: flex; justify-content: space-between; }
+        /* 日期標題與收合功能樣式 */
+        .date-group { cursor: pointer; background: #FFF0F3; padding: 10px 15px; border-radius: 12px; margin: 15px 0 8px 0; font-size: 0.9rem; font-weight: bold; color: #FF758F; display: flex; justify-content: space-between; align-items: center; }
+        .items-container { display: none; }
+        .toggle-icon { display: inline-block; transition: transform 0.2s ease; margin-right: 6px; font-size: 0.8rem; color: #FFB7C5; }
+        
         .history-item { padding: 14px; border-bottom: 1px solid #FFF0F3; }
         .history-main { display: flex; justify-content: space-between; align-items: center; }
         .user-tag { font-size: 0.75rem; background: #FFE0E6; padding: 3px 8px; border-radius: 8px; color: #FF758F; margin-left: 6px; }
@@ -225,6 +229,19 @@
         db.child(id).update({ amount: parseFloat(nAmt) || item.amount, category: nCat || item.category, note: nNote.trim(), emoji: emojiMap[nCat] || item.emoji });
     }
 
+    // --- 新增：切換明細展開/收合 ---
+    window.toggleDate = function(dateStr) {
+        const container = document.getElementById(`items-${dateStr}`);
+        const icon = document.getElementById(`icon-${dateStr}`);
+        if (container.style.display === 'none' || container.style.display === '') {
+            container.style.display = 'block';
+            icon.style.transform = 'rotate(90deg)';
+        } else {
+            container.style.display = 'none';
+            icon.style.transform = 'rotate(0deg)';
+        }
+    };
+
     function renderData() {
         if (!cachedData) return;
         const month = document.getElementById('monthPicker').value;
@@ -237,7 +254,6 @@
         Object.keys(cachedData).forEach(k => {
             const item = cachedData[k];
             if (item.date?.startsWith(month)) {
-                // 搜尋邏輯
                 const matchesSearch = !searchKey || 
                     (item.category || "").toLowerCase().includes(searchKey) || 
                     (item.note || "").toLowerCase().includes(searchKey) || 
@@ -276,6 +292,10 @@
 
         document.getElementById('totalDisplay').innerText = `${currentFilter==='all'?'月':(currentFilter===1?uName1:uName2)}支出：$${ft.toLocaleString()}`;
 
+        // 取得今天的日期字串 (YYYY-MM-DD 格式)
+        const todayDate = new Date();
+        const todayStr = todayDate.getFullYear() + '-' + String(todayDate.getMonth() + 1).padStart(2, '0') + '-' + String(todayDate.getDate()).padStart(2, '0');
+
         Object.keys(groups).sort((a,b)=>new Date(b)-new Date(a)).forEach(date => {
             let dHtml = '', dTotal = 0;
             groups[date].sort((a,b)=>b.ts-a.ts).forEach(i => {
@@ -284,7 +304,23 @@
                 if (i.userIndex === undefined && i.user) dN = i.user;
                 dHtml += `<div class="history-item"><div class="history-main"><span>${i.emoji} ${i.category} <b>$${i.amount}</b> <span class="user-tag">${dN}</span></span><div class="action-btns"><button class="edit-btn" onclick="editItem('${i.id}')">✎</button><button class="del-btn" onclick="if(confirm('刪除？')) db.child('${i.id}').remove()">×</button></div></div>${i.note?`<div style="font-size:0.8rem;color:#999;margin-top:5px;">💬 ${i.note}</div>`:''}</div>`;
             });
-            list.innerHTML += `<div class="date-group"><span>📅 ${date.slice(5)}</span><span>$${dTotal}</span></div>${dHtml}`;
+
+            // 判斷是否為今天，決定預設展開或收合
+            const isToday = (date === todayStr);
+            const displayStyle = isToday ? 'block' : 'none';
+            const iconTransform = isToday ? 'rotate(90deg)' : 'rotate(0deg)';
+
+            list.innerHTML += `
+                <div class="date-group" onclick="toggleDate('${date}')">
+                    <span>
+                        <span id="icon-${date}" class="toggle-icon" style="transform: ${iconTransform};">▶</span>
+                        📅 ${date.slice(5)}
+                    </span>
+                    <span>$${dTotal}</span>
+                </div>
+                <div id="items-${date}" class="items-container" style="display: ${displayStyle};">
+                    ${dHtml}
+                </div>`;
         });
     }
 
